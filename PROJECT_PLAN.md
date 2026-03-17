@@ -82,7 +82,7 @@ Target:
 
 ---
 
-### [ ] D1-T03 Add environment configuration
+### [x] D1-T03 Add environment configuration
 **Goal:** centralize runtime config.
 
 **Do:**

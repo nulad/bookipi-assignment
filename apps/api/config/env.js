@@ -1,0 +1,63 @@
+const path = require('node:path');
+const dotenv = require('dotenv');
+
+const envPath = path.resolve(__dirname, '../../../.env');
+dotenv.config({ path: envPath });
+
+function requireEnv(name) {
+  const value = process.env[name];
+
+  if (value === undefined || value === '') {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+
+  return value;
+}
+
+function parseInteger(name) {
+  const value = requireEnv(name);
+  const parsedValue = Number.parseInt(value, 10);
+
+  if (!Number.isInteger(parsedValue)) {
+    throw new Error(`Environment variable ${name} must be a valid integer`);
+  }
+
+  return parsedValue;
+}
+
+function parseDate(name) {
+  const value = requireEnv(name);
+  const parsedValue = new Date(value);
+
+  if (Number.isNaN(parsedValue.getTime())) {
+    throw new Error(`Environment variable ${name} must be a valid ISO-8601 date`);
+  }
+
+  return parsedValue;
+}
+
+const port = parseInteger('PORT');
+const postgresUrl = requireEnv('POSTGRES_URL');
+const redisUrl = requireEnv('REDIS_URL');
+const saleStartTime = parseDate('SALE_START_TIME');
+const saleEndTime = parseDate('SALE_END_TIME');
+const saleInitialStock = parseInteger('SALE_INITIAL_STOCK');
+
+if (saleEndTime <= saleStartTime) {
+  throw new Error('SALE_END_TIME must be later than SALE_START_TIME');
+}
+
+if (saleInitialStock < 0) {
+  throw new Error('SALE_INITIAL_STOCK must be zero or greater');
+}
+
+module.exports = {
+  port,
+  postgresUrl,
+  redisUrl,
+  sale: {
+    startTime: saleStartTime,
+    endTime: saleEndTime,
+    initialStock: saleInitialStock,
+  },
+};
