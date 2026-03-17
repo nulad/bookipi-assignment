@@ -103,7 +103,7 @@ Target:
 
 ## Infrastructure
 
-### [ ] D1-T04 Create Docker Compose for Redis and Postgres
+### [x] D1-T04 Create Docker Compose for Redis and Postgres
 **Goal:** run dependencies locally in a reproducible way.
 
 **Do:**
