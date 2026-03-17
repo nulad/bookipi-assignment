@@ -141,7 +141,7 @@ Target:
 
 ## Core Business Logic
 
-### [ ] D1-T06 Implement sale status utility
+### [x] D1-T06 Implement sale status utility
 **Goal:** define pure sale-state logic.
 
 **File target:**
