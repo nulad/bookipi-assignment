@@ -1,10 +1,12 @@
- const app = require('./app');
+const app = require('./app');
 const config = require('./config/env');
 const { connectRedis, disconnectRedis } = require('./lib/redis');
 const { verifyPostgresConnection, disconnectPostgres } = require('./lib/postgres');
 
 let server;
 let isShuttingDown = false;
+let signalHandlersRegistered = false;
+let shutdownPromise;
 
 async function verifyDependencies() {
   try {
@@ -22,82 +24,121 @@ async function verifyDependencies() {
   }
 }
 
-async function shutdown(signal) {
-  if (isShuttingDown) {
-    return;
-  }
-
-  isShuttingDown = true;
-  console.log(`Received ${signal}. Shutting down API server...`);
-
-  if (server) {
-    await new Promise((resolve, reject) => {
-      server.close((error) => {
-        if (error) {
-          if (error.message === 'Server is not running.') {
-            server = undefined;
-            resolve();
-            return;
-          }
-
-          reject(error);
-          return;
-        }
-
-        server = undefined;
-        resolve();
-      });
-    });
-  }
-
+async function cleanupDependencies() {
   await Promise.allSettled([
     disconnectRedis(),
     disconnectPostgres(),
   ]);
 }
 
+async function shutdown(signal) {
+  if (shutdownPromise) {
+    return shutdownPromise;
+  }
+
+  isShuttingDown = true;
+  shutdownPromise = (async () => {
+    console.log(`Received ${signal}. Shutting down API server...`);
+
+    if (server) {
+      await new Promise((resolve, reject) => {
+        server.close((error) => {
+          if (error) {
+            if (error.message === 'Server is not running.') {
+              server = undefined;
+              resolve();
+              return;
+            }
+
+            reject(error);
+            return;
+          }
+
+          server = undefined;
+          resolve();
+        });
+      });
+    }
+
+    await cleanupDependencies();
+  })();
+
+  try {
+    await shutdownPromise;
+  } finally {
+    shutdownPromise = undefined;
+    isShuttingDown = false;
+  }
+}
+
+function registerSignalHandlers() {
+  if (signalHandlersRegistered) {
+    return;
+  }
+
+  const createSignalHandler = (signal) => async () => {
+    try {
+      await shutdown(signal);
+      process.exit(0);
+    } catch (error) {
+      console.error('Failed to shut down cleanly:', error.message);
+      process.exit(1);
+    }
+  };
+
+  process.once('SIGINT', createSignalHandler('SIGINT'));
+  process.once('SIGTERM', createSignalHandler('SIGTERM'));
+  signalHandlersRegistered = true;
+}
+
 async function startServer() {
+  if (server) {
+    throw new Error('Server is already running');
+  }
+
+  isShuttingDown = false;
   try {
     await verifyDependencies();
 
-    server = app.listen(config.port, () => {
-      console.log(`API server listening on port ${config.port}`);
+    await new Promise((resolve, reject) => {
+      const nextServer = app.listen(config.port, () => {
+        console.log(`API server listening on port ${config.port}`);
+        resolve();
+      });
+
+      nextServer.once('error', (error) => {
+        server = undefined;
+        reject(error);
+      });
+
+      server = nextServer;
     });
 
-    process.once('SIGINT', async () => {
-      try {
-        await shutdown('SIGINT');
-        process.exit(0);
-      } catch (error) {
-        console.error('Failed to shut down cleanly:', error.message);
-        process.exit(1);
-      }
-    });
+    registerSignalHandlers();
+    return server;
+  } catch (error) {
+    server = undefined;
+    await cleanupDependencies();
+    throw error;
+  }
+}
 
-    process.once('SIGTERM', async () => {
-      try {
-        await shutdown('SIGTERM');
-        process.exit(0);
-      } catch (error) {
-        console.error('Failed to shut down cleanly:', error.message);
-        process.exit(1);
-      }
-    });
+async function main() {
+  try {
+    await startServer();
   } catch (error) {
     console.error('Failed to start API server. Verify infrastructure connectivity and environment configuration.');
     console.error(error.message);
-
-    await Promise.allSettled([
-      disconnectRedis(),
-      disconnectPostgres(),
-    ]);
-
     process.exit(1);
   }
 }
 
-startServer();
+if (require.main === module) {
+  void main();
+}
 
 module.exports = {
+  main,
   startServer,
+  shutdown,
 };

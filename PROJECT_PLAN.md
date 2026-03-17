@@ -347,7 +347,7 @@ Target:
 
 ## API
 
-### [ ] D1-T16 Create Express app skeleton
+### [x] D1-T16 Create Express app skeleton
 **Goal:** bootstrap HTTP server cleanly.
 
 **Files target:**
