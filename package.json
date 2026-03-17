@@ -1,0 +1,22 @@
+{
+  "name": "bookipi-assignment",
+  "version": "1.0.0",
+  "description": "Take-Home Project: High-Throughput Flash Sale System",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nulad/bookipi-assignment.git"
+  },
+  "author": "Nulad Pambudi",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/nulad/bookipi-assignment/issues"
+  },
+  "homepage": "https://github.com/nulad/bookipi-assignment#readme"
+}

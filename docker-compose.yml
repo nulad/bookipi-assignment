@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: bookipi-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: bookipi
+      POSTGRES_USER: bookipi
+      POSTGRES_PASSWORD: bookipi123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - bookipi-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: bookipi-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - bookipi-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  bookipi-network:
+    driver: bridge
