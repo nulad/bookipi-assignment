@@ -3,11 +3,28 @@
   "version": "1.0.0",
   "description": "Take-Home Project: High-Throughput Flash Sale System",
   "main": "index.js",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "workspaces": [
+    "apps/*"
+  ],
   "directories": {
     "test": "tests"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "setup": "npm install --workspaces",
+    "dev:api": "npm run dev --workspace=flash-sale-api",
+    "start:api": "npm run start --workspace=flash-sale-api",
+    "test": "npm run test --workspaces",
+    "test:api": "npm run test --workspace=flash-sale-api",
+    "infra:up": "docker-compose up -d",
+    "infra:down": "docker-compose down",
+    "infra:logs": "docker-compose logs -f"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.8",
+    "supertest": "^7.0.0"
   },
   "repository": {
     "type": "git",

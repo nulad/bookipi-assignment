@@ -45,7 +45,7 @@ Target:
 
 ## Foundation
 
-### [ ] D1-T01 Create monorepo skeleton
+### [x] D1-T01 Create monorepo skeleton
 **Goal:** establish repo structure for backend-first development.
 
 **Do:**
@@ -64,7 +64,7 @@ Target:
 
 ---
 
-### [ ] D1-T02 Initialize root package configuration
+### [x] D1-T02 Initialize root package configuration
 **Goal:** make local development commands easy.
 
 **Do:**
