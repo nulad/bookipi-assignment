@@ -9,7 +9,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "test": "vitest --root ..",
+    "test": "vitest run --root ..",
     "test:watch": "vitest --root .. --watch"
   },
   "author": "",

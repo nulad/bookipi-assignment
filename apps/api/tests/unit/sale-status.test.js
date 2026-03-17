@@ -28,6 +28,17 @@ describe('getSaleStatus', () => {
     ).toBe('active');
   });
 
+  it('returns sold_out at the exact sale start time when stock is zero', () => {
+    expect(
+      getSaleStatus({
+        now: startTime,
+        startTime,
+        endTime,
+        remainingStock: 0,
+      }),
+    ).toBe('sold_out');
+  });
+
   it('returns active at the exact sale end time when stock is positive', () => {
     expect(
       getSaleStatus({
@@ -37,6 +48,17 @@ describe('getSaleStatus', () => {
         remainingStock: 1,
       }),
     ).toBe('active');
+  });
+
+  it('returns sold_out at the exact sale end time when stock is zero', () => {
+    expect(
+      getSaleStatus({
+        now: endTime,
+        startTime,
+        endTime,
+        remainingStock: 0,
+      }),
+    ).toBe('sold_out');
   });
 
   it('returns sold_out within the sale window when stock is zero', () => {
@@ -70,5 +92,9 @@ describe('getSaleStatus', () => {
         remainingStock: 10,
       }),
     ).toBe('ended');
+  });
+
+  it('rejects missing input', () => {
+    expect(() => getSaleStatus()).toThrow(TypeError);
   });
 });

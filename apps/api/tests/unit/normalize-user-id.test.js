@@ -11,6 +11,10 @@ describe('normalizeUserId', () => {
     expect(normalizeUserId('Alice')).toBe(normalizeUserId(' alice '));
   });
 
+  it('keeps a single non-whitespace character after normalization', () => {
+    expect(normalizeUserId(' A ')).toBe('a');
+  });
+
   it('rejects an empty string', () => {
     expect(() => normalizeUserId('')).toThrow('User ID cannot be empty');
   });
@@ -21,5 +25,9 @@ describe('normalizeUserId', () => {
 
   it('rejects non-string input', () => {
     expect(() => normalizeUserId(null)).toThrow(TypeError);
+  });
+
+  it('rejects undefined input with the expected message', () => {
+    expect(() => normalizeUserId(undefined)).toThrow('User ID must be a string');
   });
 });

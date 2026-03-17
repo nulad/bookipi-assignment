@@ -178,7 +178,7 @@ Target:
 
 ---
 
-### [ ] D1-T08 Write unit tests for pure utilities
+### [x] D1-T08 Write unit tests for pure utilities
 **Goal:** lock in basic rules before wiring infra.
 
 **Files target:**
