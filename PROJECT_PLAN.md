@@ -304,7 +304,7 @@ Target:
 
 ## Services
 
-### [ ] D1-T14 Implement purchase service
+### [x] D1-T14 Implement purchase service
 **Goal:** connect validation, Redis decisioning, and DB persistence.
 
 **File target:**
