@@ -10,6 +10,7 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "db:schema": "node scripts/apply-schema.js",
+    "sale:init": "node scripts/init-sale.js",
     "test": "vitest run --root ..",
     "test:watch": "vitest --root .. --watch"
   },

@@ -253,7 +253,7 @@ Target:
 
 ---
 
-### [ ] D1-T12 Implement Redis sale initialization/reset script
+### [x] D1-T12 Implement Redis sale initialization/reset script
 **Goal:** quickly seed stock and clear purchase state.
 
 **File target:**
