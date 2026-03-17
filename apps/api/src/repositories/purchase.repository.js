@@ -1,0 +1,94 @@
+function getDefaultDb() {
+  const { postgresPool } = require('../lib/postgres');
+
+  return postgresPool;
+}
+
+function mapPurchase(row) {
+  return {
+    id: row.id,
+    saleId: row.sale_id,
+    userId: row.user_id,
+    purchasedAt: row.purchased_at,
+  };
+}
+
+async function createPurchase(
+  {
+    saleId,
+    userId,
+  },
+  db = getDefaultDb(),
+) {
+  const result = await db.query(
+    `
+      INSERT INTO purchases (
+        sale_id,
+        user_id
+      )
+      VALUES ($1, $2)
+      RETURNING
+        id,
+        sale_id,
+        user_id,
+        purchased_at
+    `,
+    [saleId, userId],
+  );
+
+  return mapPurchase(result.rows[0]);
+}
+
+async function findPurchasesByUserId(userId, db = getDefaultDb()) {
+  const result = await db.query(
+    `
+      SELECT
+        id,
+        sale_id,
+        user_id,
+        purchased_at
+      FROM purchases
+      WHERE user_id = $1
+      ORDER BY purchased_at ASC, id ASC
+    `,
+    [userId],
+  );
+
+  return result.rows.map(mapPurchase);
+}
+
+async function countPurchases(filters = {}, db = getDefaultDb()) {
+  const values = [];
+  const conditions = [];
+
+  if (filters.saleId !== undefined) {
+    values.push(filters.saleId);
+    conditions.push(`sale_id = $${values.length}`);
+  }
+
+  if (filters.userId !== undefined) {
+    values.push(filters.userId);
+    conditions.push(`user_id = $${values.length}`);
+  }
+
+  const whereClause = conditions.length > 0
+    ? `WHERE ${conditions.join(' AND ')}`
+    : '';
+
+  const result = await db.query(
+    `
+      SELECT COUNT(*)::INTEGER AS purchase_count
+      FROM purchases
+      ${whereClause}
+    `,
+    values,
+  );
+
+  return result.rows[0].purchase_count;
+}
+
+module.exports = {
+  createPurchase,
+  findPurchasesByUserId,
+  countPurchases,
+};

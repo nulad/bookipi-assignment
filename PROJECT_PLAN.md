@@ -221,7 +221,7 @@ Target:
 
 ---
 
-### [ ] D1-T10 Create sale and purchase repository modules
+### [x] D1-T10 Create sale and purchase repository modules
 **Goal:** encapsulate DB access.
 
 **Files target:**

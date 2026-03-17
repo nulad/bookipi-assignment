@@ -38,6 +38,7 @@ function parseDate(name) {
 
 const port = parseInteger('PORT');
 const postgresUrl = requireEnv('POSTGRES_URL');
+const postgresTestUrl = process.env.POSTGRES_TEST_URL;
 const redisUrl = requireEnv('REDIS_URL');
 const saleStartTime = parseDate('SALE_START_TIME');
 const saleEndTime = parseDate('SALE_END_TIME');
@@ -54,6 +55,7 @@ if (saleInitialStock < 0) {
 module.exports = {
   port,
   postgresUrl,
+  postgresTestUrl,
   redisUrl,
   sale: {
     startTime: saleStartTime,
