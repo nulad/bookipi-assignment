@@ -122,7 +122,7 @@ Target:
 
 ---
 
-### [ ] D1-T05 Add backend Redis and Postgres clients
+### [x] D1-T05 Add backend Redis and Postgres clients
 **Goal:** connect API to infrastructure.
 
 **Do:**
