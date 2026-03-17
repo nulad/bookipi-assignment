@@ -271,7 +271,7 @@ Target:
 
 ---
 
-### [ ] D1-T13 Implement Redis Lua purchase script
+### [x] D1-T13 Implement Redis Lua purchase script
 **Goal:** make purchase decision atomic under concurrency.
 
 **File target:**
