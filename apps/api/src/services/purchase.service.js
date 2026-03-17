@@ -1,8 +1,8 @@
 const config = require("../config/env");
-const {redisClient} = require("../lib/redis");
-const {createPurchase : newPurchase } = require("../repositories/purchase.repository");
-const {PURCHASE_SCRIPT_RESULTS, runPurchaseScript : purchaseScript} = require("../redis/purchase-script");
-const {normalizeUserId : normalizeScript} = require("../utils/normalize-user-id");
+const { redisClient } = require("../lib/redis");
+const { createPurchase : defaultCreatePurchase } = require("../repositories/purchase.repository");
+const { PURCHASE_SCRIPT_RESULTS, runPurchaseScript : defaultPurchaseScript } = require("../redis/purchase-script");
+const { normalizeUserId : defaultNormalizeScript } = require("../utils/normalize-user-id");
 
 
 const luaStatusMap = {
@@ -16,9 +16,9 @@ const luaStatusMap = {
 async function purchase({saleId, userId, now = new Date() }, deps = {}) {
     const redis = deps.redisClient || redisClient;
     const saleConfig = deps.saleConfig || config.sale;
-    const normalizeUserId = deps.normalizeUserId || normalizeScript;
-    const runPurchaseScript = deps.runPurchaseScript || purchaseScript;
-    const createPurchase = deps.createPurchase || newPurchase;
+    const normalizeUserId = deps.normalizeUserId || defaultNormalizeScript;
+    const runPurchaseScript = deps.runPurchaseScript || defaultPurchaseScript;
+    const createPurchase = deps.createPurchase || defaultCreatePurchase;
     
     // ensure saleId exists
     if (saleId == null) throw new Error("saleId is required");

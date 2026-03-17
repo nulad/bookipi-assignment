@@ -329,7 +329,7 @@ Target:
 
 ---
 
-### [ ] D1-T15 Implement sale service
+### [x] D1-T15 Implement sale service
 **Goal:** expose sale status and purchase lookup.
 
 **File target:**
