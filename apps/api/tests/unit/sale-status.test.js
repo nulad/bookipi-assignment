@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { getSaleStatus } from '../../src/utils/sale-status';
+
+const { getSaleStatus } = require('../../src/utils/sale-status');
 
 describe('getSaleStatus', () => {
   const startTime = new Date('2026-03-17T10:00:00.000Z');

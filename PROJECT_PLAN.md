@@ -161,7 +161,7 @@ Target:
 
 ---
 
-### [ ] D1-T07 Implement user ID normalization utility
+### [x] D1-T07 Implement user ID normalization utility
 **Goal:** ensure consistent user identity handling.
 
 **File target:**
