@@ -9,8 +9,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "test": "vitest",
-    "test:watch": "vitest --watch"
+    "test": "vitest --root ..",
+    "test:watch": "vitest --root .. --watch"
   },
   "author": "",
   "license": "ISC",
