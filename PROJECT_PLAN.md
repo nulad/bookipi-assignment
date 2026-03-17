@@ -367,7 +367,7 @@ Target:
 
 ---
 
-### [ ] D1-T17 Implement sale routes and controllers
+### [x] D1-T17 Implement sale routes and controllers
 **Goal:** expose read-only sale endpoints.
 
 **Files target:**
