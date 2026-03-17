@@ -241,7 +241,7 @@ Target:
 
 ## Redis Flash Sale Hot Path
 
-### [ ] D1-T11 Define Redis key strategy
+### [x] D1-T11 Define Redis key strategy
 **Goal:** establish predictable key usage.
 
 **Suggested keys:**
