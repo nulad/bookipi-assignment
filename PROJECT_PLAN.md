@@ -200,7 +200,7 @@ Target:
 
 ## Persistence
 
-### [ ] D1-T09 Create initial database schema
+### [x] D1-T09 Create initial database schema
 **Goal:** persist successful purchases durably.
 
 **File target:**

@@ -17,6 +17,7 @@
     "setup": "npm install --workspaces",
     "dev:api": "npm run dev --workspace=flash-sale-api",
     "start:api": "npm run start --workspace=flash-sale-api",
+    "db:schema:api": "npm run db:schema --workspace=flash-sale-api",
     "test": "npm run test --workspaces",
     "test:api": "npm run test --workspace=flash-sale-api",
     "infra:up": "docker-compose up -d",
