@@ -744,7 +744,7 @@ If time gets tight, finish these first:
 
 ---
 
-### [ ] D2-T08 Connect frontend to backend endpoints
+### [x] D2-T08 Connect frontend to backend endpoints
 
 **Goal:** make the UI functional.
 

@@ -211,6 +211,8 @@ function LookupResult({ lookupResult }) {
 export default function App() {
   const saleStatusAbortControllerRef = useRef(null);
   const saleStatusRequestIdRef = useRef(0);
+  const lookupAbortControllerRef = useRef(null);
+  const lookupRequestIdRef = useRef(0);
 
   const [saleSnapshot, setSaleSnapshot] = useState({
     status: 'upcoming',
@@ -229,6 +231,63 @@ export default function App() {
   const [lookupResult, setLookupResult] = useState(null);
   const [lookupError, setLookupError] = useState('');
   const [isCheckingPurchase, setIsCheckingPurchase] = useState(false);
+
+  async function loadPurchaseStatus(userId) {
+    const normalizedLookupUserId = userId.trim();
+
+    if (!normalizedLookupUserId) {
+      lookupAbortControllerRef.current?.abort();
+      lookupRequestIdRef.current += 1;
+      setLookupResult(null);
+      setLookupError('userId must be a non-empty string');
+      setIsCheckingPurchase(false);
+      return null;
+    }
+
+    const requestId = lookupRequestIdRef.current + 1;
+    lookupRequestIdRef.current = requestId;
+
+    lookupAbortControllerRef.current?.abort();
+    const abortController = new AbortController();
+    lookupAbortControllerRef.current = abortController;
+
+    setLookupUserId(normalizedLookupUserId);
+    setIsCheckingPurchase(true);
+    setLookupError('');
+
+    try {
+      const payload = await requestJson(
+        `/purchase-status/${encodeURIComponent(normalizedLookupUserId)}`,
+        {
+          signal: abortController.signal,
+        },
+      );
+
+      if (lookupRequestIdRef.current !== requestId) {
+        return null;
+      }
+
+      setLookupResult(payload);
+      setLookupUserId(payload.userId);
+      return payload;
+    } catch (error) {
+      if (isAbortError(error)) {
+        return null;
+      }
+
+      if (lookupRequestIdRef.current !== requestId) {
+        return null;
+      }
+
+      setLookupResult(null);
+      setLookupError(error.message);
+      return null;
+    } finally {
+      if (lookupRequestIdRef.current === requestId) {
+        setIsCheckingPurchase(false);
+      }
+    }
+  }
 
   async function loadSaleStatus() {
     const requestId = saleStatusRequestIdRef.current + 1;
@@ -282,6 +341,7 @@ export default function App() {
     return () => {
       window.clearInterval(intervalId);
       saleStatusAbortControllerRef.current?.abort();
+      lookupAbortControllerRef.current?.abort();
     };
   }, []);
 
@@ -302,22 +362,19 @@ export default function App() {
       const payload = await requestJson('/purchase', {
         method: 'POST',
         body: JSON.stringify({
-          userId: purchaseUserId,
+          userId: normalizedPurchaseUserId,
         }),
       });
 
       setPurchaseResult(payload);
-
-      if (payload.purchase?.userId) {
-        setLookupUserId(payload.purchase.userId);
-      } else {
-        setLookupUserId(normalizedPurchaseUserId);
-      }
-
-      await loadSaleStatus();
+      await Promise.all([
+        loadSaleStatus(),
+        loadPurchaseStatus(payload.purchase?.userId ?? normalizedPurchaseUserId),
+      ]);
     } catch (error) {
       setPurchaseResult(null);
       setPurchaseError(error.message);
+      await loadSaleStatus();
     } finally {
       setIsSubmittingPurchase(false);
     }
@@ -325,28 +382,7 @@ export default function App() {
 
   async function handleLookupSubmit(event) {
     event.preventDefault();
-    const normalizedLookupUserId = lookupUserId.trim();
-
-    if (!normalizedLookupUserId) {
-      setLookupResult(null);
-      setLookupError('userId must be a non-empty string');
-      return;
-    }
-
-    const encodedUserId = encodeURIComponent(normalizedLookupUserId);
-
-    setIsCheckingPurchase(true);
-    setLookupError('');
-
-    try {
-      const payload = await requestJson(`/purchase-status/${encodedUserId}`);
-      setLookupResult(payload);
-    } catch (error) {
-      setLookupResult(null);
-      setLookupError(error.message);
-    } finally {
-      setIsCheckingPurchase(false);
-    }
+    await loadPurchaseStatus(lookupUserId);
   }
 
   return (
