@@ -692,7 +692,7 @@ If time gets tight, finish these first:
 
 ---
 
-### [ ] D2-T05 Add mixed-user concurrency test
+### [x] D2-T05 Add mixed-user concurrency test
 
 **Goal:** prove duplicate + unique user combinations are safe.
 
