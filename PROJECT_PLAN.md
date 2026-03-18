@@ -384,7 +384,7 @@ Target:
 
 ---
 
-### [ ] D1-T18 Implement purchase route and controller
+### [x] D1-T18 Implement purchase route and controller
 **Goal:** expose the purchase endpoint.
 
 **Files target:**
@@ -617,7 +617,7 @@ If time gets tight, finish these first:
 * [ ] D1-T13 Implement Redis Lua purchase script
 * [ ] D1-T14 Implement purchase service
 * [ ] D1-T16 Create Express app skeleton
-* [ ] D1-T18 Implement purchase route and controller
+* [x] D1-T18 Implement purchase route and controller
 * [ ] D1-T21 Write integration tests for purchase endpoint
 * [ ] D1-T23 Write no-oversell concurrency test
 
