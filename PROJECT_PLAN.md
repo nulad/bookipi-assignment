@@ -643,7 +643,7 @@ If time gets tight, finish these first:
 
 ---
 
-### [ ] D2-T02 Improve error handling
+### [x] D2-T02 Improve error handling
 
 **Goal:** make failures explicit and reviewer-friendly.
 

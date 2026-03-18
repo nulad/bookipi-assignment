@@ -174,12 +174,14 @@ Other result statuses currently returned by the purchase flow:
 Current validation error:
 
 - `400 invalid_request` when `userId` is missing, empty, whitespace-only, or not a string
+- all API errors now use the same envelope: `error.type`, `error.code`, and `error.message`
 
 Example validation error:
 
 ```json
 {
   "error": {
+    "type": "validation_error",
     "code": "invalid_request",
     "message": "userId must be a non-empty string"
   }

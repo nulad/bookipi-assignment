@@ -156,6 +156,7 @@ describe.sequential('POST /purchase', () => {
 
       expect(response.status).toBe(400);
       expect(response.body.error).toBeDefined();
+      expect(response.body.error.type).toBe('validation_error');
       expect(response.body.error.code).toBe('invalid_request');
     } finally {
       await harness.teardownTest();
@@ -173,6 +174,7 @@ describe.sequential('POST /purchase', () => {
 
       expect(response.status).toBe(400);
       expect(response.body.error).toBeDefined();
+      expect(response.body.error.type).toBe('validation_error');
       expect(response.body.error.code).toBe('invalid_request');
     } finally {
       await harness.teardownTest();
@@ -190,6 +192,7 @@ describe.sequential('POST /purchase', () => {
 
       expect(response.status).toBe(400);
       expect(response.body.error).toBeDefined();
+      expect(response.body.error.type).toBe('validation_error');
       expect(response.body.error.code).toBe('invalid_request');
     } finally {
       await harness.teardownTest();
@@ -207,6 +210,7 @@ describe.sequential('POST /purchase', () => {
 
       expect(response.status).toBe(400);
       expect(response.body.error).toBeDefined();
+      expect(response.body.error.type).toBe('validation_error');
       expect(response.body.error.code).toBe('invalid_request');
     } finally {
       await harness.teardownTest();

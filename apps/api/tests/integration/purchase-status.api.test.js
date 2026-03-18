@@ -82,6 +82,7 @@ describe.sequential('GET /purchase-status/:userId', () => {
       expect(response.status).toBe(400);
       expect(response.body).toEqual({
         error: {
+          type: 'validation_error',
           code: 'invalid_request',
           message: 'userId must be a non-empty string',
         },

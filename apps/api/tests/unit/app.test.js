@@ -30,6 +30,7 @@ describe('app', () => {
     expect(response.status).toBe(404);
     expect(response.body).toEqual({
       error: {
+        type: 'not_found_error',
         code: 'not_found',
         message: 'Route not found',
       },
@@ -45,6 +46,7 @@ describe('app', () => {
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
       error: {
+        type: 'validation_error',
         code: 'invalid_json',
         message: 'Request body must be valid JSON',
       },
@@ -67,6 +69,7 @@ describe('app', () => {
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
       error: {
+        type: 'validation_error',
         code: 'invalid_request',
         message: 'userId must be a non-empty string',
       },
@@ -125,6 +128,7 @@ describe('app', () => {
     expect(response.status).toBe(500);
     expect(response.body).toEqual({
       error: {
+        type: 'internal_error',
         code: 'internal_error',
         message: 'Internal server error',
       },
@@ -147,6 +151,7 @@ describe('app', () => {
     expect(response.status).toBe(500);
     expect(response.body).toEqual({
       error: {
+        type: 'internal_error',
         code: 'internal_error',
         message: 'Internal server error',
       },

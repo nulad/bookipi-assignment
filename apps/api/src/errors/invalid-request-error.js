@@ -1,8 +1,10 @@
-class InvalidRequestError extends Error {
+const { ValidationError } = require('./validation-error');
+
+class InvalidRequestError extends ValidationError {
   constructor(message) {
-    super(message);
-    this.name = 'InvalidRequestError';
-    this.code = 'invalid_request';
+    super(message, {
+      code: 'invalid_request',
+    });
   }
 }
 
