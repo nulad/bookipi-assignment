@@ -429,7 +429,7 @@ Target:
 
 ---
 
-### [ ] D1-T20 Write integration tests for sale status endpoint
+### [x] D1-T20 Write integration tests for sale status endpoint
 
 **Goal:** verify sale read path.
 
