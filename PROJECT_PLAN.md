@@ -709,7 +709,7 @@ If time gets tight, finish these first:
 
 ## Frontend
 
-### [ ] D2-T06 Initialize simple React frontend
+### [x] D2-T06 Initialize simple React frontend
 
 **Goal:** create the minimum UI needed by the assignment.
 

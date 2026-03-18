@@ -14,7 +14,7 @@ This repository focuses first on backend correctness for a flash sale flow. The 
 Current repo status:
 
 - `apps/api` contains the implemented backend
-- `apps/web` is still a placeholder
+- `apps/web` contains a minimal React + Vite frontend shell
 - local infrastructure runs through Docker Compose with Redis and Postgres
 
 ## Architecture Summary
@@ -78,6 +78,7 @@ npm run infra:up
 npm run db:schema:api
 npm run sale:init:api
 npm run dev:api
+npm run dev:web
 ```
 
 Local service ports from [docker-compose.yml](docker-compose.yml):
@@ -85,6 +86,7 @@ Local service ports from [docker-compose.yml](docker-compose.yml):
 - API on `localhost:3000`
 - Postgres on `localhost:5433`
 - Redis on `localhost:6379`
+- frontend on `localhost:5173`
 
 Tests use `POSTGRES_TEST_URL` when running in test mode.
 

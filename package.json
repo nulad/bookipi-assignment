@@ -16,10 +16,12 @@
   "scripts": {
     "setup": "npm install --workspaces",
     "dev:api": "npm run dev --workspace=flash-sale-api",
+    "dev:web": "npm --prefix apps/web run dev",
     "start:api": "npm run start --workspace=flash-sale-api",
+    "build:web": "npm --prefix apps/web run build",
     "db:schema:api": "npm run db:schema --workspace=flash-sale-api",
     "sale:init:api": "npm run sale:init --workspace=flash-sale-api",
-    "test": "npm run test --workspaces",
+    "test": "npm run test --workspaces --if-present",
     "test:api": "npm run test --workspace=flash-sale-api",
     "infra:up": "docker-compose up -d",
     "infra:down": "docker-compose down",
