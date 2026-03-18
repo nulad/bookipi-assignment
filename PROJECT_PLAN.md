@@ -523,7 +523,7 @@ Target:
 
 ---
 
-### [ ] D1-T24 Write same-user race test
+### [x] D1-T24 Write same-user race test
 
 **Goal:** prove duplicate concurrent requests from one user are safe.
 
