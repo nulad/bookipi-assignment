@@ -725,7 +725,7 @@ If time gets tight, finish these first:
 
 ---
 
-### [ ] D2-T07 Build single-page flash sale UI
+### [x] D2-T07 Build single-page flash sale UI
 
 **Goal:** provide the required user flow.
 

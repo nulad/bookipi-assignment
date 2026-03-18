@@ -14,7 +14,7 @@ This repository focuses first on backend correctness for a flash sale flow. The 
 Current repo status:
 
 - `apps/api` contains the implemented backend
-- `apps/web` contains a minimal React + Vite frontend shell
+- `apps/web` contains a single-page React + Vite flash sale demo UI
 - local infrastructure runs through Docker Compose with Redis and Postgres
 
 ## Architecture Summary
@@ -226,13 +226,12 @@ These tests rely on local Redis and Postgres being available.
 - Instead, that path returns `503 purchase_persistence_failed`, logs the failure, and appends a JSON reconciliation record to Redis list `flashsale:purchase_persistence_failures` so the reservation can be reviewed and repaired later.
 - The API surface is intentionally small so the core purchase path stays easy to reason about and test.
 - Sale configuration is environment-driven and effectively single-sale, which simplifies initialization but does not yet model multiple concurrent campaigns.
-- The frontend was deferred so backend correctness and concurrency guarantees could be established first.
+- The frontend stays intentionally thin and talks directly to the existing API surface, which keeps the assignment demo easy to reason about but leaves room for a richer client data layer if the app grew.
 
 ## Future Improvements
 
 The following items are planned work, not current behavior:
 
-- build out `apps/web` for live sale status, purchase submission, and purchase-status checks
 - add stress and load testing under `tests/stress`
 - add better observability around purchase results, failures, and Redis/Postgres health
 - support dynamic sale creation and configuration instead of relying on env-only sale setup
