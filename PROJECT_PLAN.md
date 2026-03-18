@@ -450,7 +450,7 @@ Target:
 
 ---
 
-### [ ] D1-T21 Write integration tests for purchase endpoint
+### [x] D1-T21 Write integration tests for purchase endpoint
 
 **Goal:** verify purchase rules through HTTP.
 
