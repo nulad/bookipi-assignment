@@ -494,7 +494,7 @@ Target:
 
 ---
 
-### [ ] D1-T23 Write no-oversell concurrency test
+### [x] D1-T23 Write no-oversell concurrency test
 
 **Goal:** prove stock cannot be oversold.
 
