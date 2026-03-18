@@ -3,15 +3,16 @@ const { redisClient } = require('../lib/redis');
 const {
   createPurchase: defaultCreatePurchase,
 } = require('../repositories/purchase.repository');
-const { getOrCreateSale: defaultGetOrCreateSale } = require('../repositories/sale.repository');
-const { FLASH_SALE_REDIS_KEYS } = require('../redis/keys');
+const {
+  resolveActiveSaleId: defaultResolveActiveSaleId,
+} = require('./active-sale.service');
 const {
   PURCHASE_SCRIPT_RESULTS,
   runPurchaseScript: defaultPurchaseScript,
 } = require('../redis/purchase-script');
 const { normalizeUserId: defaultNormalizeUserId } = require('../utils/normalize-user-id');
 
-const luaStatusMap = {
+const PURCHASE_STATUS_BY_SCRIPT_RESULT = {
   [PURCHASE_SCRIPT_RESULTS.SUCCESS]: 'success',
   [PURCHASE_SCRIPT_RESULTS.ALREADY_PURCHASED]: 'already_purchased',
   [PURCHASE_SCRIPT_RESULTS.SOLD_OUT]: 'sold_out',
@@ -19,28 +20,13 @@ const luaStatusMap = {
   [PURCHASE_SCRIPT_RESULTS.ENDED]: 'sale_ended',
 };
 
-async function getActiveSaleId(deps = {}) {
-  const redis = deps.redisClient || redisClient;
-  const saleConfig = deps.saleConfig || config.sale;
-  const getOrCreateSale = deps.getOrCreateSale || defaultGetOrCreateSale;
-  const cachedSaleId = await redis.get(FLASH_SALE_REDIS_KEYS.activeSaleId);
-
-  if (typeof cachedSaleId === 'string' && cachedSaleId.length > 0) {
-    return cachedSaleId;
-  }
-
-  const sale = await getOrCreateSale(saleConfig);
-  await redis.set(FLASH_SALE_REDIS_KEYS.activeSaleId, sale.id);
-
-  return sale.id;
-}
-
 async function purchase({ userId, now = new Date() }, deps = {}) {
   const redis = deps.redisClient || redisClient;
   const saleConfig = deps.saleConfig || config.sale;
   const normalizeUserId = deps.normalizeUserId || defaultNormalizeUserId;
   const runPurchaseScript = deps.runPurchaseScript || defaultPurchaseScript;
   const createPurchase = deps.createPurchase || defaultCreatePurchase;
+  const resolveActiveSaleId = deps.resolveActiveSaleId || defaultResolveActiveSaleId;
   const normalizedUserId = normalizeUserId(userId);
 
   const nowMs = now.getTime();
@@ -54,16 +40,17 @@ async function purchase({ userId, now = new Date() }, deps = {}) {
     saleStartMs,
     saleEndMs,
   });
-  const status = luaStatusMap[result];
+  const status = PURCHASE_STATUS_BY_SCRIPT_RESULT[result];
 
   if (!status) {
     throw new Error(`Unexpected purchase script result: ${String(result)}`);
   }
 
   if (result === PURCHASE_SCRIPT_RESULTS.SUCCESS) {
-    const saleId = await getActiveSaleId({
-      redisClient: redis,
+    const saleId = await resolveActiveSaleId({
       saleConfig,
+    }, {
+      redisClient: redis,
       getOrCreateSale: deps.getOrCreateSale,
     });
     const purchaseRecord = await createPurchase({
@@ -78,6 +65,5 @@ async function purchase({ userId, now = new Date() }, deps = {}) {
 }
 
 module.exports = {
-  getActiveSaleId,
   purchase,
 };

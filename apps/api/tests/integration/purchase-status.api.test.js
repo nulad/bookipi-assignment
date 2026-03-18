@@ -70,4 +70,24 @@ describe.sequential('GET /purchase-status/:userId', () => {
       await harness.teardownTest();
     }
   });
+
+  it('returns 400 when the decoded path userId is blank', async () => {
+    await harness.setupTest(createActiveSaleScenario());
+
+    try {
+      const response = await harness
+        .createRequest()
+        .get('/purchase-status/%20%20%20');
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({
+        error: {
+          code: 'invalid_request',
+          message: 'userId must be a non-empty string',
+        },
+      });
+    } finally {
+      await harness.teardownTest();
+    }
+  });
 });

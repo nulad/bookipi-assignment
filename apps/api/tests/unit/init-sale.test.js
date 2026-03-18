@@ -137,4 +137,22 @@ describe('init-sale script', () => {
     expect(transaction.set).toHaveBeenCalledWith('flashsale:stock', '13');
     expect(transaction.set).toHaveBeenCalledWith('flashsale:active_sale_id', '88');
   });
+
+  it('rejects an empty SALE_INITIAL_STOCK value instead of treating it as zero', async () => {
+    const originalInitialStock = process.env.SALE_INITIAL_STOCK;
+
+    process.env.SALE_INITIAL_STOCK = '';
+
+    try {
+      await expect(runInitSale({})).rejects.toThrow(
+        'Initial stock must be an integer greater than or equal to 0',
+      );
+    } finally {
+      if (originalInitialStock === undefined) {
+        delete process.env.SALE_INITIAL_STOCK;
+      } else {
+        process.env.SALE_INITIAL_STOCK = originalInitialStock;
+      }
+    }
+  });
 });

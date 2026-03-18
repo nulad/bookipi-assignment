@@ -32,7 +32,7 @@ The implemented backend lives in `apps/api/src` and uses a narrow request path t
 ### Repository Structure
 
 - `apps/api/src/controllers`: request validation and HTTP response mapping
-- `apps/api/src/services`: purchase and sale-status business logic
+- `apps/api/src/services`: purchase command flow, active-sale lookup, and status query logic
 - `apps/api/src/repositories`: Postgres access
 - `apps/api/src/redis`: Lua script and Redis key helpers
 - `apps/api/tests`: unit, repository, integration, and concurrency coverage

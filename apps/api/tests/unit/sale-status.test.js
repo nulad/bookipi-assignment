@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-const { getSaleStatus } = require('../../src/utils/sale-status');
+const { computeSaleStatus } = require('../../src/utils/sale-status');
 
-describe('getSaleStatus', () => {
+describe('computeSaleStatus', () => {
   const startTime = new Date('2026-03-17T10:00:00.000Z');
   const endTime = new Date('2026-03-17T11:00:00.000Z');
 
   it('returns upcoming before the sale start time', () => {
     expect(
-      getSaleStatus({
+      computeSaleStatus({
         now: new Date('2026-03-17T09:59:59.999Z'),
         startTime,
         endTime,
@@ -19,7 +19,7 @@ describe('getSaleStatus', () => {
 
   it('returns active at the exact sale start time when stock is positive', () => {
     expect(
-      getSaleStatus({
+      computeSaleStatus({
         now: startTime,
         startTime,
         endTime,
@@ -30,7 +30,7 @@ describe('getSaleStatus', () => {
 
   it('returns sold_out at the exact sale start time when stock is zero', () => {
     expect(
-      getSaleStatus({
+      computeSaleStatus({
         now: startTime,
         startTime,
         endTime,
@@ -41,7 +41,7 @@ describe('getSaleStatus', () => {
 
   it('returns active at the exact sale end time when stock is positive', () => {
     expect(
-      getSaleStatus({
+      computeSaleStatus({
         now: endTime,
         startTime,
         endTime,
@@ -52,7 +52,7 @@ describe('getSaleStatus', () => {
 
   it('returns sold_out at the exact sale end time when stock is zero', () => {
     expect(
-      getSaleStatus({
+      computeSaleStatus({
         now: endTime,
         startTime,
         endTime,
@@ -63,7 +63,7 @@ describe('getSaleStatus', () => {
 
   it('returns sold_out within the sale window when stock is zero', () => {
     expect(
-      getSaleStatus({
+      computeSaleStatus({
         now: new Date('2026-03-17T10:30:00.000Z'),
         startTime,
         endTime,
@@ -74,7 +74,7 @@ describe('getSaleStatus', () => {
 
   it('returns sold_out within the sale window when stock is negative', () => {
     expect(
-      getSaleStatus({
+      computeSaleStatus({
         now: new Date('2026-03-17T10:30:00.000Z'),
         startTime,
         endTime,
@@ -85,7 +85,7 @@ describe('getSaleStatus', () => {
 
   it('returns ended after the sale end time', () => {
     expect(
-      getSaleStatus({
+      computeSaleStatus({
         now: new Date('2026-03-17T11:00:00.001Z'),
         startTime,
         endTime,
@@ -95,6 +95,6 @@ describe('getSaleStatus', () => {
   });
 
   it('rejects missing input', () => {
-    expect(() => getSaleStatus()).toThrow(TypeError);
+    expect(() => computeSaleStatus()).toThrow(TypeError);
   });
 });

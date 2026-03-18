@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+const { InvalidRequestError } = require('../../src/errors/invalid-request-error');
 const { normalizeUserId } = require('../../src/utils/normalize-user-id');
 
 describe('normalizeUserId', () => {
@@ -16,18 +17,18 @@ describe('normalizeUserId', () => {
   });
 
   it('rejects an empty string', () => {
-    expect(() => normalizeUserId('')).toThrow('User ID cannot be empty');
+    expect(() => normalizeUserId('')).toThrow('userId must be a non-empty string');
   });
 
   it('rejects a whitespace-only string', () => {
-    expect(() => normalizeUserId('   ')).toThrow('User ID cannot be empty');
+    expect(() => normalizeUserId('   ')).toThrow('userId must be a non-empty string');
   });
 
   it('rejects non-string input', () => {
-    expect(() => normalizeUserId(null)).toThrow(TypeError);
+    expect(() => normalizeUserId(null)).toThrow(InvalidRequestError);
   });
 
   it('rejects undefined input with the expected message', () => {
-    expect(() => normalizeUserId(undefined)).toThrow('User ID must be a string');
+    expect(() => normalizeUserId(undefined)).toThrow('userId must be a non-empty string');
   });
 });

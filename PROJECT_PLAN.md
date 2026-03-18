@@ -607,19 +607,19 @@ Follow this order unless blocked:
 
 If time gets tight, finish these first:
 
-* [ ] D1-T04 Create Docker Compose for Redis and Postgres
-* [ ] D1-T05 Add backend Redis and Postgres clients
-* [ ] D1-T06 Implement sale status utility
-* [ ] D1-T07 Implement user ID normalization utility
-* [ ] D1-T08 Write unit tests for pure utilities
-* [ ] D1-T09 Create initial database schema
-* [ ] D1-T12 Implement Redis sale initialization/reset script
-* [ ] D1-T13 Implement Redis Lua purchase script
-* [ ] D1-T14 Implement purchase service
-* [ ] D1-T16 Create Express app skeleton
+* [x] D1-T04 Create Docker Compose for Redis and Postgres
+* [x] D1-T05 Add backend Redis and Postgres clients
+* [x] D1-T06 Implement sale status utility
+* [x] D1-T07 Implement user ID normalization utility
+* [x] D1-T08 Write unit tests for pure utilities
+* [x] D1-T09 Create initial database schema
+* [x] D1-T12 Implement Redis sale initialization/reset script
+* [x] D1-T13 Implement Redis Lua purchase script
+* [x] D1-T14 Implement purchase service
+* [x] D1-T16 Create Express app skeleton
 * [x] D1-T18 Implement purchase route and controller
-* [ ] D1-T21 Write integration tests for purchase endpoint
-* [ ] D1-T23 Write no-oversell concurrency test
+* [x] D1-T21 Write integration tests for purchase endpoint
+* [x] D1-T23 Write no-oversell concurrency test
 
 ---
 
@@ -627,7 +627,7 @@ If time gets tight, finish these first:
 
 ## Backend Completion
 
-### [ ] D2-T01 Refactor backend structure after Day 1 learning
+### [x] D2-T01 Refactor backend structure after Day 1 learning
 
 **Goal:** clean up rough edges from Day 1.
 

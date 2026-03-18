@@ -1,15 +1,11 @@
+const { InvalidRequestError } = require('../errors/invalid-request-error');
+
 function normalizeUserId(userId) {
-  if (typeof userId !== 'string') {
-    throw new TypeError('User ID must be a string');
+  if (typeof userId !== 'string' || userId.trim().length === 0) {
+    throw new InvalidRequestError('userId must be a non-empty string');
   }
 
-  const normalizedUserId = userId.trim().toLowerCase();
-
-  if (!normalizedUserId) {
-    throw new Error('User ID cannot be empty');
-  }
-
-  return normalizedUserId;
+  return userId.trim().toLowerCase();
 }
 
 module.exports = {

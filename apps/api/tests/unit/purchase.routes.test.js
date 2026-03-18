@@ -42,22 +42,4 @@ describe('purchase.routes', () => {
       userId: 'Alice@example.com',
     });
   });
-
-  it('returns 400 for invalid bodies', async () => {
-    const purchase = vi.fn();
-    const app = createAppWithRouter({ purchase });
-
-    const response = await request(app)
-      .post('/purchase')
-      .send({ userId: '   ' });
-
-    expect(response.status).toBe(400);
-    expect(response.body).toEqual({
-      error: {
-        code: 'invalid_request',
-        message: 'userId must be a non-empty string',
-      },
-    });
-    expect(purchase).not.toHaveBeenCalled();
-  });
 });

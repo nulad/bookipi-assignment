@@ -38,24 +38,22 @@ describe('purchase.controller', () => {
     expect(response.json).toHaveBeenCalledWith(payload);
   });
 
-  it.each([
-    [{}, 'missing userId'],
-    [{ userId: 123 }, 'non-string userId'],
-    [{ userId: '   ' }, 'blank userId'],
-  ])('returns 400 for %s', async (body) => {
+  it('passes the request userId through to the service', async () => {
     const response = createResponse();
-    const purchase = vi.fn();
+    const purchase = vi.fn().mockResolvedValue({ status: 'sold_out' });
     const controller = createPurchaseController({ purchase });
 
-    await controller.purchase({ body }, response);
-
-    expect(purchase).not.toHaveBeenCalled();
-    expect(response.status).toHaveBeenCalledWith(400);
-    expect(response.json).toHaveBeenCalledWith({
-      error: {
-        code: 'invalid_request',
-        message: 'userId must be a non-empty string',
+    await controller.purchase(
+      {
+        body: {
+          userId: ' Alice@example.com ',
+        },
       },
+      response,
+    );
+
+    expect(purchase).toHaveBeenCalledWith({
+      userId: ' Alice@example.com ',
     });
   });
 

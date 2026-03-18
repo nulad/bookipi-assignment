@@ -39,22 +39,19 @@ async function createPurchase(
   return mapPurchase(result.rows[0]);
 }
 
-async function findPurchasesByUserId(userId, db = getDefaultDb()) {
+async function hasPurchaseForUserId(userId, db = getDefaultDb()) {
   const result = await db.query(
     `
-      SELECT
-        id,
-        sale_id,
-        user_id,
-        purchased_at
-      FROM purchases
-      WHERE user_id = $1
-      ORDER BY purchased_at ASC, id ASC
+      SELECT EXISTS (
+        SELECT 1
+        FROM purchases
+        WHERE user_id = $1
+      ) AS has_purchased
     `,
     [userId],
   );
 
-  return result.rows.map(mapPurchase);
+  return result.rows[0].has_purchased;
 }
 
 async function countPurchases(filters = {}, db = getDefaultDb()) {
@@ -89,6 +86,6 @@ async function countPurchases(filters = {}, db = getDefaultDb()) {
 
 module.exports = {
   createPurchase,
-  findPurchasesByUserId,
+  hasPurchaseForUserId,
   countPurchases,
 };

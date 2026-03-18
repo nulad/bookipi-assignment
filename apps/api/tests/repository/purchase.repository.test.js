@@ -4,7 +4,7 @@ const { createSale } = require('../../src/repositories/sale.repository');
 const {
   countPurchases,
   createPurchase,
-  findPurchasesByUserId,
+  hasPurchaseForUserId,
 } = require('../../src/repositories/purchase.repository');
 const { createTestDatabase } = require('./helpers/postgres-test-helpers');
 
@@ -73,7 +73,7 @@ describe('purchase.repository', () => {
     }
   });
 
-  it('finds all purchases for a user id across sales', async () => {
+  it('returns whether a user already has a persisted purchase', async () => {
     const client = await testDatabase.openTransaction();
 
     try {
@@ -119,14 +119,10 @@ describe('purchase.repository', () => {
         client,
       );
 
-      const purchases = await findPurchasesByUserId(userId, client);
-
-      expect(purchases).toHaveLength(2);
-      expect(purchases.map((purchase) => purchase.saleId)).toEqual([
-        saleOne.id,
-        saleTwo.id,
-      ]);
-      expect(purchases.every((purchase) => purchase.userId === userId)).toBe(true);
+      await expect(hasPurchaseForUserId(userId, client)).resolves.toBe(true);
+      await expect(
+        hasPurchaseForUserId(`missing-${Date.now()}@example.com`, client),
+      ).resolves.toBe(false);
     } finally {
       await client.query('ROLLBACK');
       client.release();

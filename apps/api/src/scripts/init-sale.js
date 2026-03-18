@@ -1,48 +1,35 @@
-const path = require('node:path');
-const dotenv = require('dotenv');
 const { createClient } = require('redis');
 
 const config = require('../config/env');
 const { disconnectPostgres } = require('../lib/postgres');
 const { FLASH_SALE_REDIS_KEYS } = require('../redis/keys');
-const { getOrCreateSale: defaultGetOrCreateSale } = require('../repositories/sale.repository');
-
-const envPath = path.resolve(__dirname, '../../../../.env');
-dotenv.config({ path: envPath });
-
-function requireEnv(name) {
-  const value = process.env[name];
-
-  if (value === undefined || value === '') {
-    throw new Error(`Missing required environment variable: ${name} (expected in ${envPath})`);
-  }
-
-  return value;
-}
+const { ensureActiveSale: defaultEnsureActiveSale } = require('../services/active-sale.service');
 
 function resolveInitialStock(initialStock) {
   if (initialStock === undefined) {
-    return resolveInitialStock(requireEnv('SALE_INITIAL_STOCK'));
+    const envInitialStock = process.env.SALE_INITIAL_STOCK;
+
+    return resolveInitialStock(envInitialStock === undefined ? config.sale.initialStock : envInitialStock);
   }
 
   const parsedInitialStock = typeof initialStock === 'string'
-    ? Number(initialStock)
+    ? Number.parseInt(initialStock.trim(), 10)
     : initialStock;
 
-  if (!Number.isInteger(parsedInitialStock) || parsedInitialStock < 0) {
+  if (
+    !Number.isInteger(parsedInitialStock)
+    || parsedInitialStock < 0
+    || (typeof initialStock === 'string' && !/^[+-]?\d+$/.test(initialStock.trim()))
+  ) {
     throw new Error('Initial stock must be an integer greater than or equal to 0');
   }
 
   return parsedInitialStock;
 }
 
-function resolveRedisUrl(redisUrl) {
-  return redisUrl ?? requireEnv('REDIS_URL');
-}
-
 async function connectInitSaleRedis(redisUrl) {
   const redisClient = createClient({
-    url: resolveRedisUrl(redisUrl),
+    url: redisUrl ?? config.redisUrl,
   });
 
   redisClient.on('error', (error) => {
@@ -100,17 +87,23 @@ async function resetSaleState(redisClient, initialStock, saleId) {
 async function runInitSale(options = {}) {
   const initialStock = resolveInitialStock(options.initialStock);
   const saleConfig = options.saleConfig ?? config.sale;
-  const getOrCreateSale = options.getOrCreateSale ?? defaultGetOrCreateSale;
+  const ensureActiveSale = options.ensureActiveSale ?? defaultEnsureActiveSale;
   const disconnectDb = options.disconnectPostgres ?? disconnectPostgres;
-  const usesDefaultSaleRepository = options.getOrCreateSale === undefined;
+  const usesDefaultSaleDependencies = (
+    options.ensureActiveSale === undefined
+    && options.getOrCreateSale === undefined
+  );
 
   if (options.redisClient) {
-    const sale = await getOrCreateSale(saleConfig);
-
     try {
+      const sale = await ensureActiveSale(
+        { saleConfig },
+        { getOrCreateSale: options.getOrCreateSale },
+      );
+      
       return await resetSaleState(options.redisClient, initialStock, sale.id);
     } finally {
-      if (usesDefaultSaleRepository) {
+      if (usesDefaultSaleDependencies) {
         await disconnectDb();
       }
     }
@@ -121,13 +114,16 @@ async function runInitSale(options = {}) {
   const redisClient = await connectRedis(options.redisUrl);
 
   try {
-    const sale = await getOrCreateSale(saleConfig);
+    const sale = await ensureActiveSale(
+      { saleConfig },
+      { getOrCreateSale: options.getOrCreateSale },
+    );
 
     return await resetSaleState(redisClient, initialStock, sale.id);
   } finally {
     await Promise.allSettled([
       disconnectRedis(redisClient),
-      usesDefaultSaleRepository ? disconnectDb() : Promise.resolve(),
+      usesDefaultSaleDependencies ? disconnectDb() : Promise.resolve(),
     ]);
   }
 }

@@ -5,6 +5,7 @@ import request from 'supertest';
 const appModule = require('../../src/app');
 const app = appModule;
 const { createApp } = appModule;
+const { InvalidRequestError } = require('../../src/errors/invalid-request-error');
 const { createPurchaseRouter } = require('../../src/routes/purchase.routes');
 const { createSaleRouter } = require('../../src/routes/sale.routes');
 
@@ -46,6 +47,28 @@ describe('app', () => {
       error: {
         code: 'invalid_json',
         message: 'Request body must be valid JSON',
+      },
+    });
+  });
+
+  it('returns a JSON 400 payload for invalid request errors', async () => {
+    const customApp = createApp({
+      purchaseRouter: createPurchaseRouter({
+        purchase: vi.fn().mockRejectedValue(
+          new InvalidRequestError('userId must be a non-empty string'),
+        ),
+      }),
+    });
+
+    const response = await request(customApp)
+      .post('/purchase')
+      .send({});
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      error: {
+        code: 'invalid_request',
+        message: 'userId must be a non-empty string',
       },
     });
   });

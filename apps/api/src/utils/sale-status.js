@@ -1,4 +1,4 @@
-function getSaleStatus({ now, startTime, endTime, remainingStock }) {
+function computeSaleStatus({ now, startTime, endTime, remainingStock }) {
   if (now < startTime) {
     return 'upcoming';
   }
@@ -15,5 +15,5 @@ function getSaleStatus({ now, startTime, endTime, remainingStock }) {
 }
 
 module.exports = {
-  getSaleStatus,
+  computeSaleStatus,
 };

@@ -1,7 +1,9 @@
 const {
   getSaleStatus: defaultGetSaleStatus,
+} = require('../services/sale-status.service');
+const {
   getPurchaseStatus: defaultGetPurchaseStatus,
-} = require('../services/sale.service');
+} = require('../services/purchase-status.service');
 
 function createSaleController(deps = {}) {
   const getSaleStatus = deps.getSaleStatus || defaultGetSaleStatus;
