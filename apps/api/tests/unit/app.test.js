@@ -5,6 +5,7 @@ import request from 'supertest';
 const appModule = require('../../src/app');
 const app = appModule;
 const { createApp } = appModule;
+const { createPurchaseRouter } = require('../../src/routes/purchase.routes');
 const { createSaleRouter } = require('../../src/routes/sale.routes');
 
 describe('app', () => {
@@ -68,6 +69,25 @@ describe('app', () => {
     });
   });
 
+  it('mounts the injected purchase router before the 404 handler', async () => {
+    const purchaseRouter = express.Router();
+    purchaseRouter.post('/purchase', (_request, response) => {
+      response.status(200).json({
+        status: 'success',
+      });
+    });
+
+    const customApp = createApp({ purchaseRouter });
+    const response = await request(customApp)
+      .post('/purchase')
+      .send({ userId: 'alice@example.com' });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      status: 'success',
+    });
+  });
+
   it('forwards rejected async sale handlers to the app error middleware', async () => {
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -78,6 +98,28 @@ describe('app', () => {
     });
 
     const response = await request(customApp).get('/sale-status');
+
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({
+      error: {
+        code: 'internal_error',
+        message: 'Internal server error',
+      },
+    });
+  });
+
+  it('forwards rejected async purchase handlers to the app error middleware', async () => {
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const customApp = createApp({
+      purchaseRouter: createPurchaseRouter({
+        purchase: vi.fn().mockRejectedValue(new Error('Redis unavailable')),
+      }),
+    });
+
+    const response = await request(customApp)
+      .post('/purchase')
+      .send({ userId: 'alice@example.com' });
 
     expect(response.status).toBe(500);
     expect(response.body).toEqual({

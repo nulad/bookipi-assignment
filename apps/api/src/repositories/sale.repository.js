@@ -47,6 +47,41 @@ async function createSale(
   return mapSale(result.rows[0]);
 }
 
+async function getOrCreateSale(
+  {
+    productName,
+    initialStock,
+    startTime,
+    endTime,
+  },
+  db = getDefaultDb(),
+) {
+  const result = await db.query(
+    `
+      INSERT INTO sales (
+        product_name,
+        initial_stock,
+        start_time,
+        end_time
+      )
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT ON CONSTRAINT sales_single_sale_definition_key
+      DO UPDATE SET product_name = EXCLUDED.product_name
+      RETURNING
+        id,
+        product_name,
+        initial_stock,
+        start_time,
+        end_time,
+        created_at
+    `,
+    [productName, initialStock, startTime, endTime],
+  );
+
+  return mapSale(result.rows[0]);
+}
+
 module.exports = {
   createSale,
+  getOrCreateSale,
 };

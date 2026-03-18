@@ -16,27 +16,30 @@ function createRedisTransaction() {
 }
 
 describe('init-sale script', () => {
-  it('sets the stock key and clears purchased users in a single Redis transaction', async () => {
+  it('sets the stock key, clears purchased users, and stores active sale id in a single Redis transaction', async () => {
     const transaction = createRedisTransaction();
     const redisClient = {
       multi: vi.fn().mockReturnValue(transaction),
     };
 
-    transaction.exec.mockResolvedValue(['OK', 1]);
+    transaction.exec.mockResolvedValue(['OK', 1, 'OK']);
 
-    await expect(resetSaleState(redisClient, 42)).resolves.toEqual({
+    await expect(resetSaleState(redisClient, 42, '123')).resolves.toEqual({
       initialStock: 42,
+      saleId: '123',
       stockKey: 'flashsale:stock',
       purchasedUsersKey: 'flashsale:purchased_users',
+      activeSaleIdKey: 'flashsale:active_sale_id',
     });
 
     expect(redisClient.multi).toHaveBeenCalledTimes(1);
     expect(transaction.set).toHaveBeenCalledWith('flashsale:stock', '42');
     expect(transaction.del).toHaveBeenCalledWith('flashsale:purchased_users');
+    expect(transaction.set).toHaveBeenCalledWith('flashsale:active_sale_id', '123');
     expect(transaction.exec).toHaveBeenCalledTimes(1);
   });
 
-  it('disconnects Redis after a successful reset', async () => {
+  it('creates or loads the configured sale and disconnects Redis after a successful reset', async () => {
     const transaction = createRedisTransaction();
     const redisClient = {
       isOpen: true,
@@ -44,19 +47,33 @@ describe('init-sale script', () => {
       quit: vi.fn().mockResolvedValue('OK'),
     };
     const connectRedis = vi.fn().mockResolvedValue(redisClient);
+    const getOrCreateSale = vi.fn().mockResolvedValue({
+      id: '77',
+    });
 
-    transaction.exec.mockResolvedValue(['OK', 1]);
+    transaction.exec.mockResolvedValue(['OK', 1, 'OK']);
 
     await expect(
       runInitSale({
         initialStock: 7,
         connectRedis,
+        getOrCreateSale,
       }),
-    ).resolves.toMatchObject({
+    ).resolves.toEqual({
       initialStock: 7,
+      saleId: '77',
+      stockKey: 'flashsale:stock',
+      purchasedUsersKey: 'flashsale:purchased_users',
+      activeSaleIdKey: 'flashsale:active_sale_id',
     });
 
     expect(connectRedis).toHaveBeenCalledTimes(1);
+    expect(getOrCreateSale).toHaveBeenCalledWith(expect.objectContaining({
+      productName: expect.any(String),
+      initialStock: expect.any(Number),
+      startTime: expect.any(Date),
+      endTime: expect.any(Date),
+    }));
     expect(redisClient.quit).toHaveBeenCalledTimes(1);
   });
 
@@ -68,6 +85,9 @@ describe('init-sale script', () => {
       quit: vi.fn().mockResolvedValue('OK'),
     };
     const connectRedis = vi.fn().mockResolvedValue(redisClient);
+    const getOrCreateSale = vi.fn().mockResolvedValue({
+      id: '55',
+    });
 
     transaction.exec.mockRejectedValue(new Error('boom'));
 
@@ -75,6 +95,7 @@ describe('init-sale script', () => {
       runInitSale({
         initialStock: 9,
         connectRedis,
+        getOrCreateSale,
       }),
     ).rejects.toThrow('boom');
 
@@ -88,17 +109,22 @@ describe('init-sale script', () => {
     const redisClient = {
       multi: vi.fn().mockReturnValue(transaction),
     };
+    const getOrCreateSale = vi.fn().mockResolvedValue({
+      id: '88',
+    });
 
-    transaction.exec.mockResolvedValue(['OK', 1]);
+    transaction.exec.mockResolvedValue(['OK', 1, 'OK']);
     process.env.SALE_INITIAL_STOCK = '13';
 
     try {
       await expect(
         runInitSale({
           redisClient,
+          getOrCreateSale,
         }),
       ).resolves.toMatchObject({
         initialStock: 13,
+        saleId: '88',
       });
     } finally {
       if (originalInitialStock === undefined) {
@@ -109,5 +135,6 @@ describe('init-sale script', () => {
     }
 
     expect(transaction.set).toHaveBeenCalledWith('flashsale:stock', '13');
+    expect(transaction.set).toHaveBeenCalledWith('flashsale:active_sale_id', '88');
   });
 });

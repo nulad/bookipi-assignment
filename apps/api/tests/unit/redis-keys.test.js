@@ -6,9 +6,10 @@ const {
 } = require('../../src/redis/keys');
 
 describe('redis key strategy', () => {
-  it('defines the expected stock and purchased users keys', () => {
+  it('defines the expected stock, purchased users, and active sale id keys', () => {
     expect(FLASH_SALE_REDIS_KEYS.stock).toBe('flashsale:stock');
     expect(FLASH_SALE_REDIS_KEYS.purchasedUsers).toBe('flashsale:purchased_users');
+    expect(FLASH_SALE_REDIS_KEYS.activeSaleId).toBe('flashsale:active_sale_id');
   });
 
   it('returns purchase script keys in the required order', () => {

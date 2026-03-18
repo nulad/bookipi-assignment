@@ -2,7 +2,10 @@ const path = require('node:path');
 const dotenv = require('dotenv');
 const { createClient } = require('redis');
 
+const config = require('../config/env');
+const { disconnectPostgres } = require('../lib/postgres');
 const { FLASH_SALE_REDIS_KEYS } = require('../redis/keys');
+const { getOrCreateSale: defaultGetOrCreateSale } = require('../repositories/sale.repository');
 
 const envPath = path.resolve(__dirname, '../../../../.env');
 dotenv.config({ path: envPath });
@@ -63,27 +66,54 @@ async function disconnectRedisClient(redisClient) {
   }
 }
 
-async function resetSaleState(redisClient, initialStock) {
+async function resetSaleState(redisClient, initialStock, saleId) {
   const normalizedInitialStock = resolveInitialStock(initialStock);
 
-  await redisClient
+  const transaction = redisClient
     .multi()
     .set(FLASH_SALE_REDIS_KEYS.stock, normalizedInitialStock.toString())
-    .del(FLASH_SALE_REDIS_KEYS.purchasedUsers)
-    .exec();
+    .del(FLASH_SALE_REDIS_KEYS.purchasedUsers);
 
-  return {
+  const result = {
     initialStock: normalizedInitialStock,
     stockKey: FLASH_SALE_REDIS_KEYS.stock,
     purchasedUsersKey: FLASH_SALE_REDIS_KEYS.purchasedUsers,
   };
+
+  if (saleId === undefined) {
+    transaction.del(FLASH_SALE_REDIS_KEYS.activeSaleId);
+  } else {
+    if (typeof saleId !== 'string' || saleId.length === 0) {
+      throw new Error('saleId must be a non-empty string');
+    }
+
+    transaction.set(FLASH_SALE_REDIS_KEYS.activeSaleId, saleId);
+    result.saleId = saleId;
+    result.activeSaleIdKey = FLASH_SALE_REDIS_KEYS.activeSaleId;
+  }
+
+  await transaction.exec();
+
+  return result;
 }
 
 async function runInitSale(options = {}) {
   const initialStock = resolveInitialStock(options.initialStock);
+  const saleConfig = options.saleConfig ?? config.sale;
+  const getOrCreateSale = options.getOrCreateSale ?? defaultGetOrCreateSale;
+  const disconnectDb = options.disconnectPostgres ?? disconnectPostgres;
+  const usesDefaultSaleRepository = options.getOrCreateSale === undefined;
 
   if (options.redisClient) {
-    return resetSaleState(options.redisClient, initialStock);
+    const sale = await getOrCreateSale(saleConfig);
+
+    try {
+      return await resetSaleState(options.redisClient, initialStock, sale.id);
+    } finally {
+      if (usesDefaultSaleRepository) {
+        await disconnectDb();
+      }
+    }
   }
 
   const connectRedis = options.connectRedis ?? connectInitSaleRedis;
@@ -91,9 +121,14 @@ async function runInitSale(options = {}) {
   const redisClient = await connectRedis(options.redisUrl);
 
   try {
-    return await resetSaleState(redisClient, initialStock);
+    const sale = await getOrCreateSale(saleConfig);
+
+    return await resetSaleState(redisClient, initialStock, sale.id);
   } finally {
-    await disconnectRedis(redisClient);
+    await Promise.allSettled([
+      disconnectRedis(redisClient),
+      usesDefaultSaleRepository ? disconnectDb() : Promise.resolve(),
+    ]);
   }
 }
 
@@ -103,7 +138,7 @@ async function main() {
   });
 
   console.log(
-    `Initialized flash sale state with stock=${result.initialStock} using keys ${result.stockKey} and ${result.purchasedUsersKey}`,
+    `Initialized flash sale state with saleId=${result.saleId} stock=${result.initialStock} using keys ${result.stockKey}, ${result.purchasedUsersKey}, and ${result.activeSaleIdKey}`,
   );
 }
 

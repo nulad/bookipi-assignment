@@ -16,7 +16,13 @@ function requireEnv(name) {
 
 function parseInteger(name) {
   const value = requireEnv(name);
-  const parsedValue = Number.parseInt(value, 10);
+  const normalizedValue = value.trim();
+
+  if (!/^[+-]?\d+$/.test(normalizedValue)) {
+    throw new Error(`Environment variable ${name} must be a valid integer`);
+  }
+
+  const parsedValue = Number.parseInt(normalizedValue, 10);
 
   if (!Number.isInteger(parsedValue)) {
     throw new Error(`Environment variable ${name} must be a valid integer`);
@@ -40,6 +46,7 @@ const port = parseInteger('PORT');
 const postgresUrl = requireEnv('POSTGRES_URL');
 const postgresTestUrl = process.env.POSTGRES_TEST_URL;
 const redisUrl = requireEnv('REDIS_URL');
+const saleProductName = requireEnv('SALE_PRODUCT_NAME');
 const saleStartTime = parseDate('SALE_START_TIME');
 const saleEndTime = parseDate('SALE_END_TIME');
 const saleInitialStock = parseInteger('SALE_INITIAL_STOCK');
@@ -58,6 +65,7 @@ module.exports = {
   postgresTestUrl,
   redisUrl,
   sale: {
+    productName: saleProductName,
     startTime: saleStartTime,
     endTime: saleEndTime,
     initialStock: saleInitialStock,

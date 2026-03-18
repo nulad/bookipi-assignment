@@ -1,6 +1,7 @@
 const FLASH_SALE_REDIS_KEYS = Object.freeze({
   stock: 'flashsale:stock',
   purchasedUsers: 'flashsale:purchased_users',
+  activeSaleId: 'flashsale:active_sale_id',
 });
 
 function getPurchaseScriptKeys() {
