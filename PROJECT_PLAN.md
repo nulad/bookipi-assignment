@@ -760,7 +760,7 @@ If time gets tight, finish these first:
 
 ---
 
-### [ ] D2-T09 Add basic frontend polling or refresh strategy
+### [x] D2-T09 Add basic frontend polling or refresh strategy
 
 **Goal:** keep status simple but usable.
 
