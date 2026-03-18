@@ -411,7 +411,7 @@ Target:
 
 ## Testing
 
-### [ ] D1-T19 Set up backend test harness
+### [x] D1-T19 Set up backend test harness
 
 **Goal:** make integration/concurrency tests reproducible.
 

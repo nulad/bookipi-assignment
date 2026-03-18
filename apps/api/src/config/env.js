@@ -42,9 +42,15 @@ function parseDate(name) {
   return parsedValue;
 }
 
+function isTestRuntime() {
+  return process.env.NODE_ENV === 'test' || process.env.VITEST !== undefined;
+}
+
 const port = parseInteger('PORT');
-const postgresUrl = requireEnv('POSTGRES_URL');
 const postgresTestUrl = process.env.POSTGRES_TEST_URL;
+const postgresUrl = isTestRuntime() && postgresTestUrl
+  ? postgresTestUrl
+  : requireEnv('POSTGRES_URL');
 const redisUrl = requireEnv('REDIS_URL');
 const saleProductName = requireEnv('SALE_PRODUCT_NAME');
 const saleStartTime = parseDate('SALE_START_TIME');
