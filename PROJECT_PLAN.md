@@ -676,7 +676,7 @@ If time gets tight, finish these first:
 
 ---
 
-### [ ] D2-T04 Add stronger integration coverage
+### [x] D2-T04 Add stronger integration coverage
 
 **Goal:** improve confidence in business rules.
 

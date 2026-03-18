@@ -1,6 +1,9 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 const { createBackendTestHarness } = require('../helpers/backend-test-harness');
+const { createApp } = require('../../src/app');
+const { createPurchaseRouter } = require('../../src/routes/purchase.routes');
+const { purchase } = require('../../src/services/purchase.service');
 
 function createActiveSaleScenario(initialStock = 10) {
   const now = Date.now();
@@ -14,6 +17,14 @@ function createActiveSaleScenario(initialStock = 10) {
       endTime: new Date(now + 60_000),
     },
   };
+}
+
+function createPurchaseAppAt(now) {
+  return createApp({
+    purchaseRouter: createPurchaseRouter({
+      purchase: ({ userId }) => purchase({ userId, now }),
+    }),
+  });
 }
 
 describe.sequential('POST /purchase', () => {
@@ -62,6 +73,33 @@ describe.sequential('POST /purchase', () => {
         .createRequest()
         .post('/purchase')
         .send({ userId: 'bob@example.com' });
+
+      expect(secondResponse.status).toBe(200);
+      expect(secondResponse.body.status).toBe('already_purchased');
+      expect(secondResponse.body.purchase).toBeUndefined();
+    } finally {
+      await harness.teardownTest();
+    }
+  });
+
+  it('normalizes repeated purchases so the same logical user cannot win twice', async () => {
+    await harness.setupTest(createActiveSaleScenario(5));
+
+    try {
+      const request = harness.createRequest();
+
+      const firstResponse = await request
+        .post('/purchase')
+        .send({ userId: '  Mixed.User@Example.COM  ' });
+
+      expect(firstResponse.status).toBe(200);
+      expect(firstResponse.body.status).toBe('success');
+      expect(firstResponse.body.purchase.userId).toBe('mixed.user@example.com');
+
+      const secondResponse = await harness
+        .createRequest()
+        .post('/purchase')
+        .send({ userId: 'mixed.user@example.com' });
 
       expect(secondResponse.status).toBe(200);
       expect(secondResponse.body.status).toBe('already_purchased');
@@ -140,6 +178,58 @@ describe.sequential('POST /purchase', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.status).toBe('sale_ended');
+    } finally {
+      await harness.teardownTest();
+    }
+  });
+
+  it('allows a purchase at the exact sale start time', async () => {
+    const boundaryNow = new Date('2026-03-18T10:00:00.000Z');
+    await harness.setupTest({
+      initialStock: 5,
+      saleConfig: {
+        productName: 'Purchase API Test - Start Boundary',
+        initialStock: 5,
+        startTime: new Date(boundaryNow),
+        endTime: new Date(boundaryNow.getTime() + 60_000),
+      },
+    });
+
+    try {
+      const response = await harness
+        .createRequest(createPurchaseAppAt(boundaryNow))
+        .post('/purchase')
+        .send({ userId: 'start-boundary@example.com' });
+
+      expect(response.status).toBe(200);
+      expect(response.body.status).toBe('success');
+      expect(response.body.purchase.userId).toBe('start-boundary@example.com');
+    } finally {
+      await harness.teardownTest();
+    }
+  });
+
+  it('allows a purchase at the exact sale end time while stock remains', async () => {
+    const boundaryNow = new Date('2026-03-18T10:01:00.000Z');
+    await harness.setupTest({
+      initialStock: 5,
+      saleConfig: {
+        productName: 'Purchase API Test - End Boundary',
+        initialStock: 5,
+        startTime: new Date(boundaryNow.getTime() - 60_000),
+        endTime: new Date(boundaryNow),
+      },
+    });
+
+    try {
+      const response = await harness
+        .createRequest(createPurchaseAppAt(boundaryNow))
+        .post('/purchase')
+        .send({ userId: 'end-boundary@example.com' });
+
+      expect(response.status).toBe(200);
+      expect(response.body.status).toBe('success');
+      expect(response.body.purchase.userId).toBe('end-boundary@example.com');
     } finally {
       await harness.teardownTest();
     }

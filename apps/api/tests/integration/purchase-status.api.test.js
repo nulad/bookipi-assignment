@@ -71,6 +71,33 @@ describe.sequential('GET /purchase-status/:userId', () => {
     }
   });
 
+  it('normalizes the same logical user consistently across purchase and purchase-status', async () => {
+    await harness.setupTest(createActiveSaleScenario());
+
+    try {
+      const purchaseResponse = await harness
+        .createRequest()
+        .post('/purchase')
+        .send({ userId: '  Winner@example.COM  ' });
+
+      expect(purchaseResponse.status).toBe(200);
+      expect(purchaseResponse.body.status).toBe('success');
+      expect(purchaseResponse.body.purchase.userId).toBe('winner@example.com');
+
+      const statusResponse = await harness
+        .createRequest()
+        .get(`/purchase-status/${encodeURIComponent(' WINNER@example.com ')}`);
+
+      expect(statusResponse.status).toBe(200);
+      expect(statusResponse.body).toEqual({
+        userId: 'winner@example.com',
+        hasPurchased: true,
+      });
+    } finally {
+      await harness.teardownTest();
+    }
+  });
+
   it('returns 400 when the decoded path userId is blank', async () => {
     await harness.setupTest(createActiveSaleScenario());
 
