@@ -550,7 +550,7 @@ Target:
 
 ## Documentation
 
-### [ ] D1-T25 Start README scaffold
+### [x] D1-T25 Start README scaffold
 
 **Goal:** capture design reasoning while fresh.
 
