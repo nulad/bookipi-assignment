@@ -475,7 +475,7 @@ Target:
 
 ---
 
-### [ ] D1-T22 Write integration tests for purchase status endpoint
+### [x] D1-T22 Write integration tests for purchase status endpoint
 
 **Goal:** verify persisted winner lookup.
 
