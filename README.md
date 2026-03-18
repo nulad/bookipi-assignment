@@ -44,6 +44,7 @@ The implemented backend lives in `apps/api/src` and uses a narrow request path t
 3. The service normalizes the user ID for consistent identity checks.
 4. Redis runs the Lua script to decide `success`, `already_purchased`, `sold_out`, `sale_not_started`, or `sale_ended`.
 5. On `success`, the backend resolves the active sale ID and persists the purchase to Postgres.
+6. If the Postgres insert fails after Redis already reserved the slot, the API returns an explicit persistence error, logs the incident, and pushes reconciliation data into Redis for later repair.
 
 Current simplifying assumption: the system effectively operates on one configured active sale at a time, driven by environment configuration and a cached active sale ID in Redis.
 
@@ -176,6 +177,10 @@ Current validation error:
 - `400 invalid_request` when `userId` is missing, empty, whitespace-only, or not a string
 - all API errors now use the same envelope: `error.type`, `error.code`, and `error.message`
 
+Current operational failure mode:
+
+- `503 purchase_persistence_failed` when Redis accepted the purchase but Postgres could not durably persist it
+
 Example validation error:
 
 ```json
@@ -215,6 +220,8 @@ These tests rely on local Redis and Postgres being available.
 
 - Redis Lua keeps stock decrement and duplicate-user checks atomic in the hot path, at the cost of more logic living outside plain JavaScript.
 - Postgres is the durable source of truth for successful purchases, which is safer than keeping winners only in Redis.
+- If Postgres persistence fails after Redis already reserved stock, the API does not try to roll Redis back blindly because that could oversell if the DB write actually committed before the error surfaced.
+- Instead, that path returns `503 purchase_persistence_failed`, logs the failure, and appends a JSON reconciliation record to Redis list `flashsale:purchase_persistence_failures` so the reservation can be reviewed and repaired later.
 - The API surface is intentionally small so the core purchase path stays easy to reason about and test.
 - Sale configuration is environment-driven and effectively single-sale, which simplifies initialization but does not yet model multiple concurrent campaigns.
 - The frontend was deferred so backend correctness and concurrency guarantees could be established first.

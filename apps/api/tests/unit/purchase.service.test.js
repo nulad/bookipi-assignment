@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 const { PURCHASE_SCRIPT_RESULTS } = require('../../src/redis/purchase-script');
+const { PurchasePersistenceError } = require('../../src/errors/purchase-persistence-error');
 const { purchase } = require('../../src/services/purchase.service');
 
 function createDeps(overrides = {}) {
@@ -18,6 +19,10 @@ function createDeps(overrides = {}) {
     runPurchaseScript: vi.fn(),
     createPurchase: vi.fn(),
     resolveActiveSaleId: vi.fn(),
+    logger: {
+      error: vi.fn(),
+    },
+    recordPurchasePersistenceFailure: vi.fn(),
     ...overrides,
   };
 }
@@ -91,6 +96,101 @@ describe('purchase.service', () => {
       saleId: '123',
       userId: 'alice@example.com',
     });
+  });
+
+  it('records reconciliation data and throws a controlled error when DB persistence fails', async () => {
+    const dbError = new Error('insert failed');
+    const reconciliationRecord = {
+      eventType: 'purchase_persistence_failed',
+      saleId: '123',
+      userId: 'alice@example.com',
+      failedAt: '2026-03-18T10:02:00.000Z',
+      errorName: 'Error',
+      errorMessage: 'insert failed',
+    };
+    const deps = createDeps({
+      normalizeUserId: vi.fn().mockReturnValue('alice@example.com'),
+      runPurchaseScript: vi.fn().mockResolvedValue(PURCHASE_SCRIPT_RESULTS.SUCCESS),
+      resolveActiveSaleId: vi.fn().mockResolvedValue('123'),
+      createPurchase: vi.fn().mockRejectedValue(dbError),
+      recordPurchasePersistenceFailure: vi.fn().mockResolvedValue(reconciliationRecord),
+    });
+
+    await expect(
+      purchase(
+        {
+          userId: ' Alice@example.com ',
+        },
+        deps,
+      ),
+    ).rejects.toBeInstanceOf(PurchasePersistenceError);
+
+    expect(deps.recordPurchasePersistenceFailure).toHaveBeenCalledWith({
+      saleId: '123',
+      userId: 'alice@example.com',
+      failedAt: expect.any(Date),
+      error: dbError,
+    }, {
+      redisClient: deps.redisClient,
+    });
+    expect(deps.logger.error).toHaveBeenCalledWith(
+      'Purchase persistence failed after Redis success',
+      expect.objectContaining({
+        saleId: '123',
+        userId: 'alice@example.com',
+        reconciliationRecorded: true,
+        reconciliationRecord,
+        error: {
+          name: 'Error',
+          message: 'insert failed',
+        },
+      }),
+    );
+  });
+
+  it('still throws the controlled error when reconciliation recording also fails', async () => {
+    const dbError = new Error('insert failed');
+    const reconciliationError = new Error('redis write failed');
+    const deps = createDeps({
+      normalizeUserId: vi.fn().mockReturnValue('alice@example.com'),
+      runPurchaseScript: vi.fn().mockResolvedValue(PURCHASE_SCRIPT_RESULTS.SUCCESS),
+      resolveActiveSaleId: vi.fn().mockResolvedValue('123'),
+      createPurchase: vi.fn().mockRejectedValue(dbError),
+      recordPurchasePersistenceFailure: vi.fn().mockRejectedValue(reconciliationError),
+    });
+
+    await expect(
+      purchase(
+        {
+          userId: 'alice@example.com',
+        },
+        deps,
+      ),
+    ).rejects.toBeInstanceOf(PurchasePersistenceError);
+
+    expect(deps.logger.error).toHaveBeenCalledWith(
+      'Failed to record purchase persistence reconciliation event',
+      expect.objectContaining({
+        saleId: '123',
+        userId: 'alice@example.com',
+        error: {
+          name: 'Error',
+          message: 'redis write failed',
+        },
+      }),
+    );
+    expect(deps.logger.error).toHaveBeenCalledWith(
+      'Purchase persistence failed after Redis success',
+      expect.objectContaining({
+        saleId: '123',
+        userId: 'alice@example.com',
+        reconciliationRecorded: false,
+        error: {
+          name: 'Error',
+          message: 'insert failed',
+        },
+      }),
+    );
   });
 
   it('passes the expected timestamps to the purchase script', async () => {

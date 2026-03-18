@@ -6,6 +6,7 @@ const appModule = require('../../src/app');
 const app = appModule;
 const { createApp } = appModule;
 const { InvalidRequestError } = require('../../src/errors/invalid-request-error');
+const { PurchasePersistenceError } = require('../../src/errors/purchase-persistence-error');
 const { createPurchaseRouter } = require('../../src/routes/purchase.routes');
 const { createSaleRouter } = require('../../src/routes/sale.routes');
 
@@ -154,6 +155,29 @@ describe('app', () => {
         type: 'internal_error',
         code: 'internal_error',
         message: 'Internal server error',
+      },
+    });
+  });
+
+  it('preserves the explicit purchase persistence error payload', async () => {
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const customApp = createApp({
+      purchaseRouter: createPurchaseRouter({
+        purchase: vi.fn().mockRejectedValue(new PurchasePersistenceError()),
+      }),
+    });
+
+    const response = await request(customApp)
+      .post('/purchase')
+      .send({ userId: 'alice@example.com' });
+
+    expect(response.status).toBe(503);
+    expect(response.body).toEqual({
+      error: {
+        type: 'service_unavailable_error',
+        code: 'purchase_persistence_failed',
+        message: 'Purchase could not be durably persisted; outcome pending reconciliation',
       },
     });
   });

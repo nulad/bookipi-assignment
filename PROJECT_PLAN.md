@@ -659,7 +659,7 @@ If time gets tight, finish these first:
 
 ---
 
-### [ ] D2-T03 Handle DB-write failure after Redis success
+### [x] D2-T03 Handle DB-write failure after Redis success
 
 **Goal:** address the main partial-failure weakness.
 
