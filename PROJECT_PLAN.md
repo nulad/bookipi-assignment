@@ -777,7 +777,7 @@ If time gets tight, finish these first:
 
 ## Documentation Support
 
-### [ ] D2-T10 Draft architecture explanation
+### [x] D2-T10 Draft architecture explanation
 
 **Goal:** avoid writing README from scratch on Day 3.
 
