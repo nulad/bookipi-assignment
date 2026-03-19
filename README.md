@@ -122,6 +122,88 @@ Local service ports from [docker-compose.yml](docker-compose.yml):
 
 Tests use `POSTGRES_TEST_URL` when running in test mode.
 
+## Stress Testing
+
+The repository now includes a k6 burst scenario at [tests/stress/purchase-burst.js](tests/stress/purchase-burst.js).
+
+### Prerequisites
+
+- `k6` installed locally
+- Redis and Postgres running
+- the API process running and reachable from the machine where you execute `k6`
+- Redis sale state initialized after the current sale window is configured
+
+### Important Sale Window Note
+
+The checked-in [.env.example](.env.example) currently sets:
+
+- `SALE_START_TIME=2026-03-18T10:00:00.000Z`
+- `SALE_END_TIME=2026-03-18T10:10:00.000Z`
+
+If your local `.env` still uses those example values, then on or after March 19, 2026 the stress script will fail during setup because `/sale-status` will not be `active`.
+
+Before running the stress test, update `.env` so the current time falls inside the sale window, then restart the API and reinitialize Redis sale state:
+
+```bash
+npm run infra:up
+npm run db:schema:api
+npm run sale:init:api
+npm run start:api
+```
+
+In another terminal, confirm the API is reachable:
+
+```bash
+curl http://127.0.0.1:3000/sale-status
+```
+
+Expected precondition for the stress test:
+
+```json
+{
+  "status": "active",
+  "remainingStock": 100
+}
+```
+
+### Run The Burst Scenario
+
+Run the default burst profile:
+
+```bash
+npm run stress:purchase-burst
+```
+
+If the API is running on a different host or port, override `BASE_URL`:
+
+```bash
+BASE_URL=http://127.0.0.1:3100 npm run stress:purchase-burst
+```
+
+You can also tune the traffic shape:
+
+```bash
+BURST_RATE=500 BURST_DURATION=20s PRE_ALLOCATED_VUS=300 MAX_VUS=1200 npm run stress:purchase-burst
+```
+
+Supported environment overrides:
+
+- `BASE_URL`
+- `PURCHASE_PATH`
+- `SALE_STATUS_PATH`
+- `BURST_RATE`
+- `BURST_DURATION`
+- `PRE_ALLOCATED_VUS`
+- `MAX_VUS`
+- `EXPECTED_MAX_P95_MS`
+- `EXPECTED_MAX_P99_MS`
+
+The script will fail fast if:
+
+- the API is not reachable
+- `/sale-status` does not return HTTP `200`
+- the sale is not currently `active`
+
 ## API Endpoints
 
 ### `GET /health`
@@ -246,6 +328,7 @@ Current test commands:
 ```bash
 npm test
 npm run test:api
+npm run stress:purchase-burst
 ```
 
 These tests rely on local Redis and Postgres being available.
@@ -264,7 +347,7 @@ These tests rely on local Redis and Postgres being available.
 
 The following items are planned work, not current behavior:
 
-- add stress and load testing under `tests/stress`
+- expand stress and load testing coverage under `tests/stress`
 - add better observability around purchase results, failures, and Redis/Postgres health
 - support dynamic sale creation and configuration instead of relying on env-only sale setup
 - harden reconciliation and idempotency guarantees between Redis and Postgres

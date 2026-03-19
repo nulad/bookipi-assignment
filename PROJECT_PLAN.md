@@ -797,7 +797,7 @@ If time gets tight, finish these first:
 
 ## Stress Testing
 
-### [ ] D3-T01 Add k6 stress test script for burst traffic
+### [x] D3-T01 Add k6 stress test script for burst traffic
 
 **Goal:** simulate many users attempting purchase concurrently.
 
