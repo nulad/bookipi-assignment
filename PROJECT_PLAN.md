@@ -36,6 +36,7 @@ Target:
 - k6 stress tests
 - README completed
 - architecture diagram added
+- containerized reviewer run flow
 - trade-offs and production evolution documented
 - final cleanup
 
@@ -864,7 +865,28 @@ If time gets tight, finish these first:
 
 ---
 
-### [x] D3-T05 Complete README
+## Reviewer Experience
+
+### [ ] D3-T05 Containerize web, API, and test workflow
+
+**Goal:** make reviewer setup reproducible and remove machine-specific runtime differences.
+
+**Do:**
+
+* add Dockerfile support for the API and web app
+* extend container orchestration so reviewer can start app services with a small number of commands
+* define a containerized test command for backend tests and stress tests where practical
+* ensure env wiring is documented clearly for container runs
+
+**Done when:**
+
+* reviewer can run the web app, API, and core tests inside containers
+* the main review flow does not depend on host Node/npm setup
+* README can document a simple container-first workflow
+
+---
+
+### [x] D3-T06 Complete README
 
 **Goal:** make the repo submission-ready.
 
@@ -884,7 +906,7 @@ If time gets tight, finish these first:
 
 ---
 
-### [x] D3-T06 Add “production evolution” section
+### [x] D3-T07 Add “production evolution” section
 
 **Goal:** show senior engineering judgment.
 
@@ -904,7 +926,7 @@ If time gets tight, finish these first:
 
 ## Final Cleanup
 
-### [ ] D3-T07 Final code cleanup and consistency pass
+### [ ] D3-T08 Final code cleanup and consistency pass
 
 **Goal:** make the repo easier to review.
 
@@ -921,7 +943,7 @@ If time gets tight, finish these first:
 
 ---
 
-### [ ] D3-T08 Run final full test suite
+### [ ] D3-T09 Run final full test suite
 
 **Goal:** verify nothing regressed before submission.
 
@@ -946,6 +968,7 @@ If time gets tight, finish these first:
 * [x] Architecture diagram is present
 * [ ] Backend runs locally
 * [ ] Frontend runs locally
+* [ ] Containerized reviewer workflow runs successfully
 * [ ] Unit tests pass
 * [ ] Integration tests pass
 * [ ] Concurrency tests pass
