@@ -333,7 +333,8 @@ Target:
 **Goal:** expose sale status and purchase lookup.
 
 **File target:**
-- `apps/api/src/services/sale.service.js`
+- `apps/api/src/services/sale-status.service.js`
+- `apps/api/src/services/purchase-status.service.js`
 
 **Do:**
 - get remaining stock from Redis
@@ -845,7 +846,7 @@ If time gets tight, finish these first:
 
 ## Documentation
 
-### [ ] D3-T04 Add Mermaid architecture diagram
+### [x] D3-T04 Add Mermaid architecture diagram
 
 **Goal:** satisfy architecture deliverable clearly.
 
@@ -863,7 +864,7 @@ If time gets tight, finish these first:
 
 ---
 
-### [ ] D3-T05 Complete README
+### [x] D3-T05 Complete README
 
 **Goal:** make the repo submission-ready.
 
@@ -883,7 +884,7 @@ If time gets tight, finish these first:
 
 ---
 
-### [ ] D3-T06 Add “production evolution” section
+### [x] D3-T06 Add “production evolution” section
 
 **Goal:** show senior engineering judgment.
 
@@ -941,14 +942,14 @@ If time gets tight, finish these first:
 # Final Submission Checklist
 
 * [ ] Source code is committed and pushed
-* [ ] README explains design choices and trade-offs
-* [ ] Architecture diagram is present
+* [x] README explains design choices and trade-offs
+* [x] Architecture diagram is present
 * [ ] Backend runs locally
 * [ ] Frontend runs locally
 * [ ] Unit tests pass
 * [ ] Integration tests pass
 * [ ] Concurrency tests pass
-* [ ] Stress test instructions are documented
+* [x] Stress test instructions are documented
 * [ ] Stress test result summary is documented
 * [ ] Core guarantees are proven:
 

@@ -29,6 +29,32 @@ The implemented backend lives in `apps/api/src` and uses a narrow request path t
 - the unique `(sale_id, user_id)` constraint prevents duplicate persisted wins for the same sale
 - [apps/api/src/scripts/init-sale.js](apps/api/src/scripts/init-sale.js) initializes Redis stock state and caches the active sale ID
 
+### Architecture Diagram
+
+```mermaid
+flowchart LR
+    subgraph Clients
+        WEB[React frontend]
+        K6[Stress test client]
+    end
+
+    subgraph Backend
+        API[Express API]
+    end
+
+    subgraph Data
+        REDIS[(Redis)]
+        PG[(Postgres)]
+    end
+
+    WEB -->|GET sale status<br/>POST purchase| API
+    K6 -->|Concurrent POST /purchase| API
+    API -->|Atomic stock + duplicate checks| REDIS
+    API -->|Persist sale + purchases| PG
+    REDIS -.->|Active sale state<br/>remaining stock<br/>purchased users| API
+    PG -.->|Durable purchase records| API
+```
+
 ### Repository Structure
 
 - `apps/api/src/controllers`: request validation and HTTP response mapping
@@ -40,8 +66,8 @@ The implemented backend lives in `apps/api/src` and uses a narrow request path t
 ### Purchase Flow
 
 1. Client calls `POST /purchase` with a `userId`.
-2. The controller validates that `userId` is a non-empty string.
-3. The service normalizes the user ID for consistent identity checks.
+2. The controller forwards `userId` from the request body into the purchase service.
+3. The service validates and normalizes the user ID for consistent identity checks.
 4. Redis runs the Lua script to decide `success`, `already_purchased`, `sold_out`, `sale_not_started`, or `sale_ended`.
 5. On `success`, the backend resolves the active sale ID and persists the purchase to Postgres.
 6. If the Postgres insert fails after Redis already reserved the slot, the API returns an explicit persistence error, logs the incident, and pushes reconciliation data into Redis for later repair.
@@ -121,12 +147,12 @@ npm run dev:api
 npm run dev:web
 ```
 
-Local service ports from [docker-compose.yml](docker-compose.yml):
+Local ports used during development:
 
 - API on `localhost:3000`
 - Postgres on `localhost:5433`
 - Redis on `localhost:6379`
-- frontend on `localhost:5173`
+- frontend on `localhost:5173` via `npm run dev:web`
 
 Tests use `POSTGRES_TEST_URL` when running in test mode.
 
