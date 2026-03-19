@@ -817,7 +817,7 @@ If time gets tight, finish these first:
 
 ---
 
-### [ ] D3-T02 Add second stress scenario for repeated users
+### [x] D3-T02 Add second stress scenario for repeated users
 
 **Goal:** test duplicate-purchase behavior under load.
 

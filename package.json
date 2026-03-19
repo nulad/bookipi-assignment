@@ -24,6 +24,7 @@
     "test": "npm run test --workspaces --if-present",
     "test:api": "npm run test --workspace=flash-sale-api",
     "stress:purchase-burst": "k6 run tests/stress/purchase-burst.js",
+    "stress:purchase-repeated-users": "k6 run tests/stress/purchase-repeated-users.js",
     "infra:up": "docker-compose up -d",
     "infra:down": "docker-compose down",
     "infra:logs": "docker-compose logs -f"

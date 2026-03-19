@@ -101,8 +101,16 @@ Relevant defaults from [.env.example](.env.example):
 - Postgres: `postgresql://bookipi:bookipi123@localhost:5433/bookipi`
 - Test Postgres: `postgresql://bookipi:bookipi123@localhost:5433/bookipi_test`
 - Redis: `redis://localhost:6379`
+- `SALE_START_TIME=2099-01-01T10:00:00.000Z`
+- `SALE_END_TIME=2099-01-01T10:10:00.000Z`
+
+The checked-in sale window values are placeholders. Before running `npm run sale:init:api`,
+update your local `.env` so the current time falls inside the sale window you want to test.
 
 ### Run Locally
+
+Before initializing the sale, edit `.env` and set `SALE_START_TIME` and `SALE_END_TIME`
+to a window that should be active for your local run.
 
 ```bash
 npm install
@@ -124,7 +132,10 @@ Tests use `POSTGRES_TEST_URL` when running in test mode.
 
 ## Stress Testing
 
-The repository now includes a k6 burst scenario at [tests/stress/purchase-burst.js](tests/stress/purchase-burst.js).
+The repository now includes two k6 stress scenarios:
+
+- [tests/stress/purchase-burst.js](tests/stress/purchase-burst.js) for high-cardinality unique-user bursts
+- [tests/stress/purchase-repeated-users.js](tests/stress/purchase-repeated-users.js) for duplicate-purchase pressure from a small repeated-user pool
 
 ### Prerequisites
 
@@ -133,16 +144,18 @@ The repository now includes a k6 burst scenario at [tests/stress/purchase-burst.
 - the API process running and reachable from the machine where you execute `k6`
 - Redis sale state initialized after the current sale window is configured
 
-### Important Sale Window Note
+### Sale Window Setup
 
 The checked-in [.env.example](.env.example) currently sets:
 
-- `SALE_START_TIME=2026-03-18T10:00:00.000Z`
-- `SALE_END_TIME=2026-03-18T10:10:00.000Z`
+- `SALE_START_TIME=2099-01-01T10:00:00.000Z`
+- `SALE_END_TIME=2099-01-01T10:10:00.000Z`
 
-If your local `.env` still uses those example values, then on or after March 19, 2026 the stress script will fail during setup because `/sale-status` will not be `active`.
+Those values are intentionally placeholder-only. If your local `.env` still uses them,
+the API will report a non-active sale until you replace them with a window that includes
+the current time.
 
-Before running the stress test, update `.env` so the current time falls inside the sale window, then restart the API and reinitialize Redis sale state:
+Before running the stress test, update `.env`, then restart the API and reinitialize Redis sale state:
 
 ```bash
 npm run infra:up
@@ -186,6 +199,37 @@ You can also tune the traffic shape:
 BURST_RATE=500 BURST_DURATION=20s PRE_ALLOCATED_VUS=300 MAX_VUS=1200 npm run stress:purchase-burst
 ```
 
+Expected behavior:
+
+- successful purchases stop at available stock
+- duplicate-user rejections stay at `0`
+- all responses remain HTTP `200`
+
+### Run The Repeated-User Scenario
+
+Run the repeated-user profile:
+
+```bash
+npm run stress:purchase-repeated-users
+```
+
+Tune the duplicate-user load shape with a smaller or larger repeated-user pool:
+
+```bash
+REPEATED_RATE=400 REPEATED_DURATION=20s REPEATED_USER_POOL_SIZE=20 npm run stress:purchase-repeated-users
+```
+
+Precondition for this scenario:
+
+- `/sale-status` must report `remainingStock >= REPEATED_USER_POOL_SIZE`
+
+Expected behavior:
+
+- each logical user succeeds exactly once
+- `already_purchased` responses are observed under load
+- all responses remain HTTP `200`
+- total successes equal the repeated-user pool size
+
 Supported environment overrides:
 
 - `BASE_URL`
@@ -193,6 +237,9 @@ Supported environment overrides:
 - `SALE_STATUS_PATH`
 - `BURST_RATE`
 - `BURST_DURATION`
+- `REPEATED_RATE`
+- `REPEATED_DURATION`
+- `REPEATED_USER_POOL_SIZE`
 - `PRE_ALLOCATED_VUS`
 - `MAX_VUS`
 - `EXPECTED_MAX_P95_MS`
