@@ -16,23 +16,21 @@ const config = createPurchaseStressConfig({
 });
 const metrics = createPurchaseMetrics('repeated_purchase');
 
-export const options = {
-  ...createConstantArrivalRateOptions({
-    scenarioName: 'repeated_user_burst',
-    execName: 'attemptRepeatedPurchase',
-    rate: config.rate,
-    duration: config.duration,
-    preAllocatedVUs: config.preAllocatedVUs,
-    maxVUs: config.maxVUs,
-    expectedMaxP95Ms: config.expectedMaxP95Ms,
-    expectedMaxP99Ms: config.expectedMaxP99Ms,
-    metricPrefix: 'repeated_purchase',
-    extraThresholds: {
-      repeated_purchase_already_purchased: ['count>0'],
-      repeated_purchase_successes: [`count==${REPEATED_USER_POOL_SIZE}`],
-    },
-  }),
-};
+export const options = createConstantArrivalRateOptions({
+  scenarioName: 'repeated_user_burst',
+  execName: 'attemptRepeatedPurchase',
+  rate: config.rate,
+  duration: config.duration,
+  preAllocatedVUs: config.preAllocatedVUs,
+  maxVUs: config.maxVUs,
+  expectedMaxP95Ms: config.expectedMaxP95Ms,
+  expectedMaxP99Ms: config.expectedMaxP99Ms,
+  metricPrefix: 'repeated_purchase',
+  extraThresholds: {
+    repeated_purchase_already_purchased: ['count>0'],
+    repeated_purchase_successes: [`count==${REPEATED_USER_POOL_SIZE}`],
+  },
+});
 
 function buildUserId(runId) {
   const userIndex = exec.scenario.iterationInTest % REPEATED_USER_POOL_SIZE;

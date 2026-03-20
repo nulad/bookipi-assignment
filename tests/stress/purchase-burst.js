@@ -15,22 +15,20 @@ const config = createPurchaseStressConfig({
 
 const metrics = createPurchaseMetrics('purchase');
 
-export const options = {
-  ...createConstantArrivalRateOptions({
-    scenarioName: 'purchase_burst',
-    execName: 'attemptPurchase',
-    rate: config.rate,
-    duration: config.duration,
-    preAllocatedVUs: config.preAllocatedVUs,
-    maxVUs: config.maxVUs,
-    expectedMaxP95Ms: config.expectedMaxP95Ms,
-    expectedMaxP99Ms: config.expectedMaxP99Ms,
-    metricPrefix: 'purchase',
-    extraThresholds: {
-      purchase_already_purchased: ['count==0'],
-    },
-  }),
-};
+export const options = createConstantArrivalRateOptions({
+  scenarioName: 'purchase_burst',
+  execName: 'attemptPurchase',
+  rate: config.rate,
+  duration: config.duration,
+  preAllocatedVUs: config.preAllocatedVUs,
+  maxVUs: config.maxVUs,
+  expectedMaxP95Ms: config.expectedMaxP95Ms,
+  expectedMaxP99Ms: config.expectedMaxP99Ms,
+  metricPrefix: 'purchase',
+  extraThresholds: {
+    purchase_already_purchased: ['count==0'],
+  },
+});
 
 function buildUserId(runId) {
   return `burst-user-${runId}-${exec.scenario.iterationInTest}@example.com`;

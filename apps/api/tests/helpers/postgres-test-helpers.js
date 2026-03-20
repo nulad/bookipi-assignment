@@ -25,17 +25,23 @@ function getAdminConnectionString(connectionString) {
   return connectionUrl.toString();
 }
 
-function quoteIdentifier(identifier) {
-  return `"${identifier.replaceAll('"', '""')}"`;
-}
-
-async function ensureTestDatabaseExists(connectionString) {
+function getDatabaseName(connectionString) {
   const connectionUrl = new URL(connectionString);
   const databaseName = connectionUrl.pathname.slice(1);
 
   if (!databaseName) {
     throw new Error('POSTGRES_TEST_URL must include a database name');
   }
+
+  return databaseName;
+}
+
+function quoteIdentifier(identifier) {
+  return `"${identifier.replaceAll('"', '""')}"`;
+}
+
+async function ensureTestDatabaseExists(connectionString) {
+  const databaseName = getDatabaseName(connectionString);
 
   const adminClient = new Client({
     connectionString: getAdminConnectionString(connectionString),
@@ -75,7 +81,28 @@ function createTestDatabase(options = {}) {
 
   async function ensureDatabaseSchema() {
     await ensureTestDatabaseExists(connectionString);
-    await db.query(schemaSql);
+    const schemaClient = new Client({
+      connectionString,
+    });
+    const schemaLockName = `${getDatabaseName(connectionString)}:schema`;
+
+    await schemaClient.connect();
+
+    try {
+      await schemaClient.query(
+        'SELECT pg_advisory_lock(hashtext($1))',
+        [schemaLockName],
+      );
+      await schemaClient.query(schemaSql);
+    } finally {
+      await Promise.allSettled([
+        schemaClient.query(
+          'SELECT pg_advisory_unlock(hashtext($1))',
+          [schemaLockName],
+        ),
+        schemaClient.end(),
+      ]);
+    }
   }
 
   async function closeDatabase() {

@@ -867,7 +867,7 @@ If time gets tight, finish these first:
 
 ## Reviewer Experience
 
-### [ ] D3-T05 Containerize web, API, and test workflow
+### [x] D3-T05 Containerize web, API, and test workflow
 
 **Goal:** make reviewer setup reproducible and remove machine-specific runtime differences.
 
@@ -968,7 +968,7 @@ If time gets tight, finish these first:
 * [x] Architecture diagram is present
 * [ ] Backend runs locally
 * [ ] Frontend runs locally
-* [ ] Containerized reviewer workflow runs successfully
+* [x] Containerized reviewer workflow runs successfully
 * [ ] Unit tests pass
 * [ ] Integration tests pass
 * [ ] Concurrency tests pass

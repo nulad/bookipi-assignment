@@ -35,6 +35,128 @@ services:
     networks:
       - bookipi-network
 
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    env_file:
+      - .env
+    environment:
+      PORT: 3000
+      POSTGRES_URL: postgresql://bookipi:bookipi123@postgres:5432/bookipi
+      POSTGRES_TEST_URL: postgresql://bookipi:bookipi123@postgres:5432/bookipi_test
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - bookipi-network
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "5173:80"
+    networks:
+      - bookipi-network
+
+  api-init:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    profiles: ["tools"]
+    env_file:
+      - .env
+    environment:
+      PORT: 3000
+      POSTGRES_URL: postgresql://bookipi:bookipi123@postgres:5432/bookipi
+      POSTGRES_TEST_URL: postgresql://bookipi:bookipi123@postgres:5432/bookipi_test
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["npm", "run", "init:container", "--workspace=flash-sale-api"]
+    networks:
+      - bookipi-network
+
+  api-test:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    profiles: ["tests"]
+    env_file:
+      - .env
+    environment:
+      PORT: 3000
+      POSTGRES_URL: postgresql://bookipi:bookipi123@postgres:5432/bookipi
+      POSTGRES_TEST_URL: postgresql://bookipi:bookipi123@postgres:5432/bookipi_test
+      REDIS_URL: redis://redis:6379
+      NODE_ENV: test
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["npm", "run", "test:container", "--workspace=flash-sale-api"]
+    networks:
+      - bookipi-network
+
+  stress-burst:
+    image: grafana/k6:0.49.0
+    profiles: ["tests"]
+    working_dir: /work
+    env_file:
+      - .env
+    environment:
+      BASE_URL: http://api:3000
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - .:/work:ro
+    command: ["run", "tests/stress/purchase-burst.js"]
+    networks:
+      - bookipi-network
+
+  stress-repeated:
+    image: grafana/k6:0.49.0
+    profiles: ["tests"]
+    working_dir: /work
+    env_file:
+      - .env
+    environment:
+      BASE_URL: http://api:3000
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - .:/work:ro
+    command: ["run", "tests/stress/purchase-repeated-users.js"]
+    networks:
+      - bookipi-network
+
 volumes:
   postgres_data:
   redis_data:

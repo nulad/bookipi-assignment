@@ -106,11 +106,10 @@ Adding a queue in the main path would also require more machinery: worker proces
 
 The current compromise is synchronous purchase handling plus explicit reconciliation when Redis succeeds but Postgres persistence fails. A future production evolution could move persistence behind an outbox/queue boundary while keeping Redis as the front-door concurrency gate.
 
-## Local Setup
+## Container-First Setup
 
 ### Prerequisites
 
-- Node.js `>=20`
 - Docker and Docker Compose
 
 ### Environment
@@ -130,73 +129,101 @@ Relevant defaults from [.env.example](.env.example):
 - `SALE_START_TIME=2099-01-01T10:00:00.000Z`
 - `SALE_END_TIME=2099-01-01T10:10:00.000Z`
 
-The checked-in sale window values are placeholders. Before running `npm run sale:init:api`,
-update your local `.env` so the current time falls inside the sale window you want to test.
+The checked-in sale window values are placeholders. Before starting the stack, update your
+local `.env` so the current time falls inside the sale window you want to review.
 
-### Run Locally
+### Container Env Wiring
 
-Before initializing the sale, edit `.env` and set `SALE_START_TIME` and `SALE_END_TIME`
-to a window that should be active for your local run.
+The root `.env` stays host-friendly on purpose:
+
+- `POSTGRES_URL` uses `localhost:5433`
+- `POSTGRES_TEST_URL` uses `localhost:5433`
+- `REDIS_URL` uses `localhost:6379`
+
+For container runs, `docker compose` overrides only the network hostnames:
+
+- API container talks to Postgres at `postgres:5432`
+- API container talks to Redis at `redis:6379`
+- stress-test containers call the API at `http://api:3000`
+- the web container serves the React build on `localhost:5173` and proxies API paths to `api:3000`
+
+That means the same `.env` file works for both host Node runs and containerized runs.
+
+### Start The App Stack
 
 ```bash
-npm install
-npm run infra:up
-npm run db:schema:api
-npm run sale:init:api
-npm run dev:api
-npm run dev:web
+docker compose up --build api web
 ```
 
-Local ports used during development:
+What this does:
 
-- API on `localhost:3000`
-- Postgres on `localhost:5433`
-- Redis on `localhost:6379`
-- frontend on `localhost:5173` via `npm run dev:web`
+- starts Postgres and Redis
+- waits for both dependencies
+- applies the API schema
+- initializes the active sale in Redis
+- starts the API on `localhost:3000`
+- serves the web app on `localhost:5173`
 
-Tests use `POSTGRES_TEST_URL` when running in test mode.
+Use these URLs from the host:
 
-## Stress Testing
+- frontend: `http://localhost:5173`
+- API: `http://localhost:3000`
+- API health: `http://localhost:3000/health`
 
-The repository now includes two k6 stress scenarios:
+To stop the stack:
+
+```bash
+docker compose down
+```
+
+### Containerized Test Commands
+
+Backend tests:
+
+```bash
+docker compose run --rm api-test
+```
+
+`api-test` is self-seeding: it creates `bookipi_test` and applies the schema through the test harness,
+so it does not require a separate `api-init` step.
+
+Reinitialize the active sale state without restarting the full stack:
+
+```bash
+docker compose run --rm api-init
+```
+
+The repository also includes two k6 stress scenarios:
 
 - [tests/stress/purchase-burst.js](tests/stress/purchase-burst.js) for high-cardinality unique-user bursts
 - [tests/stress/purchase-repeated-users.js](tests/stress/purchase-repeated-users.js) for duplicate-purchase pressure from a small repeated-user pool
 
-### Prerequisites
-
-- `k6` installed locally
-- Redis and Postgres running
-- the API process running and reachable from the machine where you execute `k6`
-- Redis sale state initialized after the current sale window is configured
-
-### Sale Window Setup
-
-The checked-in [.env.example](.env.example) currently sets:
-
-- `SALE_START_TIME=2099-01-01T10:00:00.000Z`
-- `SALE_END_TIME=2099-01-01T10:10:00.000Z`
-
-Those values are intentionally placeholder-only. If your local `.env` still uses them,
-the API will report a non-active sale until you replace them with a window that includes
-the current time.
-
-Before running the stress test, update `.env`, then restart the API and reinitialize Redis sale state:
+Before each stress run, make sure the sale window is active in `.env`, then reset sale state:
 
 ```bash
-npm run infra:up
-npm run db:schema:api
-npm run sale:init:api
-npm run start:api
+docker compose run --rm api-init
 ```
 
-In another terminal, confirm the API is reachable:
+Burst scenario:
 
 ```bash
-curl http://127.0.0.1:3000/sale-status
+docker compose run --rm stress-burst
 ```
 
-Expected precondition for the stress test:
+Repeated-user scenario:
+
+```bash
+docker compose run --rm stress-repeated
+```
+
+You can still override k6 env values per run:
+
+```bash
+docker compose run --rm -e BURST_RATE=500 -e BURST_DURATION=20s stress-burst
+docker compose run --rm -e REPEATED_USER_POOL_SIZE=20 stress-repeated
+```
+
+Expected precondition for either stress scenario:
 
 ```json
 {
@@ -205,45 +232,11 @@ Expected precondition for the stress test:
 }
 ```
 
-### Run The Burst Scenario
-
-Run the default burst profile:
-
-```bash
-npm run stress:purchase-burst
-```
-
-If the API is running on a different host or port, override `BASE_URL`:
-
-```bash
-BASE_URL=http://127.0.0.1:3100 npm run stress:purchase-burst
-```
-
-You can also tune the traffic shape:
-
-```bash
-BURST_RATE=500 BURST_DURATION=20s PRE_ALLOCATED_VUS=300 MAX_VUS=1200 npm run stress:purchase-burst
-```
-
 Expected behavior:
 
 - successful purchases stop at available stock
 - duplicate-user rejections stay at `0`
 - all responses remain HTTP `200`
-
-### Run The Repeated-User Scenario
-
-Run the repeated-user profile:
-
-```bash
-npm run stress:purchase-repeated-users
-```
-
-Tune the duplicate-user load shape with a smaller or larger repeated-user pool:
-
-```bash
-REPEATED_RATE=400 REPEATED_DURATION=20s REPEATED_USER_POOL_SIZE=20 npm run stress:purchase-repeated-users
-```
 
 Precondition for this scenario:
 
@@ -276,6 +269,36 @@ The script will fail fast if:
 - the API is not reachable
 - `/sale-status` does not return HTTP `200`
 - the sale is not currently `active`
+
+## Local Host Setup
+
+### Prerequisites
+
+- Node.js `>=20`
+- Docker and Docker Compose
+
+This path is still available for local development, but it is no longer the main reviewer flow.
+
+Before initializing the sale, edit `.env` and set `SALE_START_TIME` and `SALE_END_TIME`
+to a window that should be active for your local run.
+
+```bash
+npm install
+docker compose up -d postgres redis
+npm run db:schema:api
+npm run sale:init:api
+npm run dev:api
+npm run dev:web
+```
+
+Local ports used during development:
+
+- API on `localhost:3000`
+- Postgres on `localhost:5433`
+- Redis on `localhost:6379`
+- frontend on `localhost:5173` via `npm run dev:web`
+
+Tests use `POSTGRES_TEST_URL` when running in test mode.
 
 ## API Endpoints
 
@@ -399,12 +422,18 @@ The strongest concurrency claims currently covered are:
 Current test commands:
 
 ```bash
+docker compose run --rm api-test
+docker compose run --rm api-init
+docker compose run --rm stress-burst
+```
+
+Equivalent host-Node commands still exist:
+
+```bash
 npm test
 npm run test:api
 npm run stress:purchase-burst
 ```
-
-These tests rely on local Redis and Postgres being available.
 
 ## Trade-Offs
 

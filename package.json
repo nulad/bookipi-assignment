@@ -25,9 +25,16 @@
     "test:api": "npm run test --workspace=flash-sale-api",
     "stress:purchase-burst": "k6 run tests/stress/purchase-burst.js",
     "stress:purchase-repeated-users": "k6 run tests/stress/purchase-repeated-users.js",
-    "infra:up": "docker-compose up -d",
-    "infra:down": "docker-compose down",
-    "infra:logs": "docker-compose logs -f"
+    "infra:up": "docker compose up -d postgres redis",
+    "infra:down": "docker compose down",
+    "infra:logs": "docker compose logs -f postgres redis",
+    "compose:up": "docker compose up --build api web",
+    "compose:down": "docker compose down",
+    "compose:logs": "docker compose logs -f api web postgres redis",
+    "compose:init": "docker compose run --rm api-init",
+    "compose:test:api": "docker compose run --rm api-test",
+    "compose:stress:purchase-burst": "docker compose run --rm stress-burst",
+    "compose:stress:purchase-repeated-users": "docker compose run --rm stress-repeated"
   },
   "devDependencies": {
     "vitest": "^2.1.8",

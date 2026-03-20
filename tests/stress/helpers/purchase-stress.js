@@ -92,6 +92,22 @@ export function createConstantArrivalRateOptions({
   metricPrefix,
   extraThresholds = {},
 }) {
+  const thresholds = {
+    http_req_failed: ['rate<0.01'],
+    http_req_duration: [`p(95)<${expectedMaxP95Ms}`, `p(99)<${expectedMaxP99Ms}`],
+  };
+
+  thresholds[`${metricPrefix}_http_200_rate`] = ['rate==1'];
+  thresholds[`${metricPrefix}_payload_shape_rate`] = ['rate==1'];
+  thresholds[`${metricPrefix}_http_errors`] = ['count==0'];
+  thresholds[`${metricPrefix}_unexpected_status`] = ['count==0'];
+  thresholds[`${metricPrefix}_sale_not_started`] = ['count==0'];
+  thresholds[`${metricPrefix}_sale_ended`] = ['count==0'];
+
+  Object.keys(extraThresholds).forEach((key) => {
+    thresholds[key] = extraThresholds[key];
+  });
+
   return {
     summaryTrendStats: ['avg', 'min', 'med', 'p(90)', 'p(95)', 'p(99)', 'max'],
     scenarios: {
@@ -105,17 +121,7 @@ export function createConstantArrivalRateOptions({
         maxVUs,
       },
     },
-    thresholds: {
-      http_req_failed: ['rate<0.01'],
-      http_req_duration: [`p(95)<${expectedMaxP95Ms}`, `p(99)<${expectedMaxP99Ms}`],
-      [`${metricPrefix}_http_200_rate`]: ['rate==1'],
-      [`${metricPrefix}_payload_shape_rate`]: ['rate==1'],
-      [`${metricPrefix}_http_errors`]: ['count==0'],
-      [`${metricPrefix}_unexpected_status`]: ['count==0'],
-      [`${metricPrefix}_sale_not_started`]: ['count==0'],
-      [`${metricPrefix}_sale_ended`]: ['count==0'],
-      ...extraThresholds,
-    },
+    thresholds,
   };
 }
 
@@ -154,7 +160,7 @@ export function setupActiveSaleRun({
     fail(
       `${scenarioLabel} requires an active sale. ${saleStatusUrl} returned ` +
       `status=${saleStatus.status} remainingStock=${saleStatus.remainingStock} at ${new Date().toISOString()}. ` +
-      'Update SALE_START_TIME and SALE_END_TIME so the current window is active, restart the API, run "npm run sale:init:api", then retry.',
+      'Update SALE_START_TIME and SALE_END_TIME so the current window is active, reinitialize the sale state, then retry.',
     );
   }
 
@@ -231,10 +237,7 @@ export function executePurchaseAttempt({
     JSON.stringify({ userId }),
     {
       headers: jsonHeaders,
-      tags: {
-        endpoint: 'purchase',
-        ...tags,
-      },
+      tags: Object.assign({ endpoint: 'purchase' }, tags),
     },
   );
 
