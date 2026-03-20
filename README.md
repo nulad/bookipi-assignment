@@ -121,15 +121,37 @@ The current compromise is synchronous purchase handling with explicit reconcilia
 
 - Docker and Docker Compose
 
-### Environment
+### Reviewer Quick Start
 
-Copy the example environment file and adjust values if needed:
+1. Copy the example environment file:
 
 ```bash
 cp .env.example .env
 ```
 
-> ⚠️ **Important:** Before running the API, web app, or any stress test, update `SALE_START_TIME` and `SALE_END_TIME` in your local `.env` so the current time falls inside the sale window you want to review. The defaults in `.env.example` are placeholders set to `2099`, which will cause purchase attempts to return `sale_not_started`.
+2. Edit `.env` before you run anything and replace the placeholder `SALE_START_TIME` and `SALE_END_TIME` values with a window that includes the current time.
+
+> ⚠️ If you skip this step, the default `2099` timestamps in `.env.example` will make the UI show an `upcoming` sale and purchase attempts will return `sale_not_started`.
+
+3. Start the stack:
+
+```bash
+docker compose up --build api web
+```
+
+4. Verify the seeded sale is active:
+
+- open `http://localhost:5173`, or
+- call `http://localhost:3000/sale-status` and confirm the response status is `active`
+
+If you already started the stack with the placeholder timestamps, edit `.env`, then recreate the API so it reloads the new timestamps and reseeds Redis:
+
+```bash
+docker compose down
+docker compose up --build api web
+```
+
+### Environment
 
 Relevant defaults from [.env.example](.env.example):
 
@@ -137,6 +159,7 @@ Relevant defaults from [.env.example](.env.example):
 - Postgres: `postgresql://bookipi:bookipi123@localhost:5433/bookipi`
 - Test Postgres: `postgresql://bookipi:bookipi123@localhost:5433/bookipi_test`
 - Redis: `redis://localhost:6379`
+- CORS allowed origin: `*` by default for take-home demo convenience; set `CORS_ALLOWED_ORIGIN` if you want a narrower origin
 - Product name: `Flash Sale Item`
 - `SALE_START_TIME=2099-01-01T10:00:00.000Z`
 - `SALE_END_TIME=2099-01-01T10:10:00.000Z`
@@ -161,17 +184,12 @@ That means the same `.env` file works for both host Node runs and containerized 
 
 ### Start The App Stack
 
-```bash
-docker compose up --build api web
-```
-
 What this does:
 
 - starts Postgres and Redis
-- waits for both dependencies
-- applies the API schema
-- initializes the active sale in Redis
-- starts the API on `localhost:3000`
+- starts the API container, which runs `wait:deps`, `db:schema`, `sale:init`, then `start`
+- `sale:init` creates or loads the configured sale record, resets Redis stock, clears purchased users, and caches the active sale ID
+- starts the API on `localhost:3000` with the sale window loaded from `.env`
 - serves the web app on `localhost:5173`
 
 Use these URLs from the host:
@@ -202,6 +220,8 @@ Reinitialize the active sale state without restarting the full stack:
 ```bash
 docker compose run --rm api-init
 ```
+
+`api-init` runs the same dependency wait + schema + `sale:init` sequence as the API container startup. Use it when you want to reset Redis sale state and active-sale caching against the current container env. If you changed `SALE_START_TIME` or `SALE_END_TIME`, restart the API container as well so the running process reloads those timestamps.
 
 The repository also includes two k6 stress scenarios:
 
@@ -306,7 +326,8 @@ These results show the two core reviewer-facing guarantees under load: stock doe
 This path is still available for local development, but it is no longer the main reviewer flow.
 
 Before initializing the sale, edit `.env` and set `SALE_START_TIME` and `SALE_END_TIME`
-to a window that should be active for your local run.
+to a window that should be active for your local run. If you keep the placeholder `2099`
+values, the sale will stay `upcoming` and purchases will return `sale_not_started`.
 
 ```bash
 npm ci
@@ -457,6 +478,8 @@ Other result statuses currently returned by the purchase flow:
 - `sold_out`
 - `sale_not_started`
 - `sale_ended`
+
+Demo-scope note: the API currently defaults `Access-Control-Allow-Origin` to `*` for take-home review convenience. Set `CORS_ALLOWED_ORIGIN` in `.env` if you want to restrict it.
 
 Current validation error:
 

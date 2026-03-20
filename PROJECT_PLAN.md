@@ -1016,7 +1016,7 @@ These items were intentionally left out of the original submission path, but are
 
 ---
 
-## [ ] RF-T03 Tighten reviewer-facing environment and demo-scope docs
+## [x] RF-T03 Tighten reviewer-facing environment and demo-scope docs
 
 **Goal:** make first-run reviewer experience clearer and reduce ambiguity around demo-only defaults.
 

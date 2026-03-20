@@ -28,6 +28,22 @@ describe('config.env', () => {
 
     expect(config.port).toBe(3000);
     expect(config.sale.initialStock).toBe(100);
+    expect(config.corsAllowedOrigin).toBe('*');
+  });
+
+  it('uses CORS_ALLOWED_ORIGIN when provided', () => {
+    process.env.PORT = '3000';
+    process.env.POSTGRES_URL = 'postgresql://localhost:5432/bookipi';
+    process.env.REDIS_URL = 'redis://localhost:6379';
+    process.env.SALE_PRODUCT_NAME = 'Flash Sale Item';
+    process.env.SALE_START_TIME = '2026-03-18T10:00:00.000Z';
+    process.env.SALE_END_TIME = '2026-03-18T10:10:00.000Z';
+    process.env.SALE_INITIAL_STOCK = '100';
+    process.env.CORS_ALLOWED_ORIGIN = 'http://localhost:5173';
+
+    const config = loadFreshEnvModule();
+
+    expect(config.corsAllowedOrigin).toBe('http://localhost:5173');
   });
 
   it('prefers POSTGRES_TEST_URL during test runs when it is available', () => {

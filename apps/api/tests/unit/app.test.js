@@ -38,6 +38,24 @@ describe('app', () => {
     expect(logger.log).toHaveBeenCalledWith(expect.stringMatching(/^GET \/health 200 \d+ms$/));
   });
 
+  it('returns demo-scope CORS headers by default', async () => {
+    const response = await request(app).get('/health');
+
+    expect(response.headers['access-control-allow-origin']).toBe('*');
+    expect(response.headers['access-control-allow-methods']).toBe('GET,POST,OPTIONS');
+    expect(response.headers['access-control-allow-headers']).toBe('Content-Type');
+  });
+
+  it('allows overriding the CORS origin', async () => {
+    const customApp = createApp({
+      corsAllowedOrigin: 'http://localhost:5173',
+    });
+
+    const response = await request(customApp).get('/health');
+
+    expect(response.headers['access-control-allow-origin']).toBe('http://localhost:5173');
+  });
+
   it('returns a JSON 404 payload for unknown routes', async () => {
     const response = await request(app).get('/does-not-exist');
 

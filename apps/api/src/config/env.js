@@ -56,6 +56,7 @@ const saleProductName = requireEnv('SALE_PRODUCT_NAME');
 const saleStartTime = parseDate('SALE_START_TIME');
 const saleEndTime = parseDate('SALE_END_TIME');
 const saleInitialStock = parseInteger('SALE_INITIAL_STOCK');
+const corsAllowedOrigin = process.env.CORS_ALLOWED_ORIGIN?.trim() || '*';
 
 if (saleEndTime <= saleStartTime) {
   throw new Error('SALE_END_TIME must be later than SALE_START_TIME');
@@ -70,6 +71,7 @@ module.exports = {
   postgresUrl,
   postgresTestUrl,
   redisUrl,
+  corsAllowedOrigin,
   sale: {
     productName: saleProductName,
     startTime: saleStartTime,
