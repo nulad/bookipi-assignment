@@ -7,7 +7,7 @@ const { resetSaleState } = require('../../src/scripts/init-sale');
 const {
   acquireRedisTestLock,
   releaseRedisTestLock,
-} = require('./helpers/redis-test-lock');
+} = require('../helpers/redis-test-lock');
 
 describe.sequential('runPurchaseScript same-user concurrency', () => {
   let redisClient;

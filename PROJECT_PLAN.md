@@ -926,7 +926,7 @@ If time gets tight, finish these first:
 
 ## Final Cleanup
 
-### [ ] D3-T08 Final code cleanup and consistency pass
+### [x] D3-T08 Final code cleanup and consistency pass
 
 **Goal:** make the repo easier to review.
 

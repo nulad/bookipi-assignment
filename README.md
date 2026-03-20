@@ -126,8 +126,10 @@ Relevant defaults from [.env.example](.env.example):
 - Postgres: `postgresql://bookipi:bookipi123@localhost:5433/bookipi`
 - Test Postgres: `postgresql://bookipi:bookipi123@localhost:5433/bookipi_test`
 - Redis: `redis://localhost:6379`
+- Product name: `Flash Sale Item`
 - `SALE_START_TIME=2099-01-01T10:00:00.000Z`
 - `SALE_END_TIME=2099-01-01T10:10:00.000Z`
+- `SALE_INITIAL_STOCK=100`
 
 The checked-in sale window values are placeholders. Before starting the stack, update your
 local `.env` so the current time falls inside the sale window you want to review.
@@ -296,8 +298,8 @@ Before initializing the sale, edit `.env` and set `SALE_START_TIME` and `SALE_EN
 to a window that should be active for your local run.
 
 ```bash
-npm install
-docker compose up -d postgres redis
+npm ci
+npm run infra:up
 npm run db:schema:api
 npm run sale:init:api
 npm run dev:api
@@ -382,13 +384,15 @@ Successful response shape on a winning purchase:
 {
   "status": "success",
   "purchase": {
-    "id": 1,
-    "saleId": 1,
+    "id": "1",
+    "saleId": "1",
     "userId": "alice@example.com",
     "purchasedAt": "2026-03-18T10:00:00.000Z"
   }
 }
 ```
+
+`id` and `saleId` come from Postgres `BIGSERIAL`/`BIGINT` columns. They are exposed as strings in the API because the Node Postgres driver returns `int8` values as strings by default.
 
 Other result statuses currently returned by the purchase flow:
 

@@ -4,7 +4,6 @@ const { connectRedis, disconnectRedis } = require('./lib/redis');
 const { verifyPostgresConnection, disconnectPostgres } = require('./lib/postgres');
 
 let server;
-let isShuttingDown = false;
 let signalHandlersRegistered = false;
 let shutdownPromise;
 
@@ -36,7 +35,6 @@ async function shutdown(signal) {
     return shutdownPromise;
   }
 
-  isShuttingDown = true;
   shutdownPromise = (async () => {
     console.log(`Received ${signal}. Shutting down API server...`);
 
@@ -67,7 +65,6 @@ async function shutdown(signal) {
     await shutdownPromise;
   } finally {
     shutdownPromise = undefined;
-    isShuttingDown = false;
   }
 }
 
@@ -96,7 +93,6 @@ async function startServer() {
     throw new Error('Server is already running');
   }
 
-  isShuttingDown = false;
   try {
     await verifyDependencies();
 

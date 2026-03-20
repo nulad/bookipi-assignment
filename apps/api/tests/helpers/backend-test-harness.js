@@ -109,16 +109,8 @@ function createBackendTestHarness(options = {}) {
     return request(app);
   }
 
-  function getDefaultSaleConfig() {
-    return cloneSaleConfig(defaultSaleConfig);
-  }
-
   return {
-    cleanDatabase,
-    clearRedisState: () => clearRedisState(redisClient),
     createRequest,
-    getDefaultSaleConfig,
-    seedSaleState,
     setupSuite,
     setupTest,
     teardownSuite,

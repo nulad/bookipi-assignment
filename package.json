@@ -2,23 +2,18 @@
   "name": "bookipi-assignment",
   "version": "1.0.0",
   "description": "Take-Home Project: High-Throughput Flash Sale System",
-  "main": "index.js",
   "engines": {
     "node": ">=20.0.0"
   },
   "workspaces": [
-    "apps/*",
-    "apps/*/src"
+    "apps/api/src",
+    "apps/web"
   ],
-  "directories": {
-    "test": "tests"
-  },
   "scripts": {
-    "setup": "npm install --workspaces",
     "dev:api": "npm run dev --workspace=flash-sale-api",
-    "dev:web": "npm --prefix apps/web run dev",
+    "dev:web": "npm run dev --workspace=flash-sale-web",
     "start:api": "npm run start --workspace=flash-sale-api",
-    "build:web": "npm --prefix apps/web run build",
+    "build:web": "npm run build --workspace=flash-sale-web",
     "db:schema:api": "npm run db:schema --workspace=flash-sale-api",
     "sale:init:api": "npm run sale:init --workspace=flash-sale-api",
     "test": "npm run test --workspaces --if-present",

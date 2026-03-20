@@ -4,7 +4,7 @@ const {
   createSale,
   getOrCreateSale,
 } = require('../../src/repositories/sale.repository');
-const { createTestDatabase } = require('./helpers/postgres-test-helpers');
+const { createTestDatabase } = require('../helpers/postgres-test-helpers');
 
 describe('sale.repository', () => {
   const testDatabase = createTestDatabase();

@@ -6,7 +6,7 @@ const {
   createPurchase,
   hasPurchaseForUserId,
 } = require('../../src/repositories/purchase.repository');
-const { createTestDatabase } = require('./helpers/postgres-test-helpers');
+const { createTestDatabase } = require('../helpers/postgres-test-helpers');
 
 describe('purchase.repository', () => {
   const testDatabase = createTestDatabase();
