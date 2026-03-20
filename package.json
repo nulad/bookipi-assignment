@@ -16,6 +16,8 @@
     "build:web": "npm run build --workspace=flash-sale-web",
     "db:schema:api": "npm run db:schema --workspace=flash-sale-api",
     "sale:init:api": "npm run sale:init --workspace=flash-sale-api",
+    "purchase:reconcile:api": "npm run purchase:reconcile --workspace=flash-sale-api --",
+    "smoke:reconciliation": "bash scripts/smoke-test-reconciliation.sh",
     "test": "npm run test --workspaces --if-present",
     "test:api": "npm run test --workspace=flash-sale-api",
     "stress:purchase-burst": "k6 run tests/stress/purchase-burst.js",

@@ -3,6 +3,7 @@ const FLASH_SALE_REDIS_KEYS = Object.freeze({
   purchasedUsers: 'flashsale:purchased_users',
   activeSaleId: 'flashsale:active_sale_id',
   purchasePersistenceFailures: 'flashsale:purchase_persistence_failures',
+  purchasePersistenceFailuresArchive: 'flashsale:purchase_persistence_failures_archive',
 });
 
 function getPurchaseScriptKeys() {

@@ -39,6 +39,35 @@ async function createPurchase(
   return mapPurchase(result.rows[0]);
 }
 
+async function findPurchaseBySaleIdAndUserId(
+  {
+    saleId,
+    userId,
+  },
+  db = getDefaultDb(),
+) {
+  const result = await db.query(
+    `
+      SELECT
+        id,
+        sale_id,
+        user_id,
+        purchased_at
+      FROM purchases
+      WHERE sale_id = $1
+        AND user_id = $2
+      LIMIT 1
+    `,
+    [saleId, userId],
+  );
+
+  if (result.rowCount === 0) {
+    return null;
+  }
+
+  return mapPurchase(result.rows[0]);
+}
+
 async function hasPurchaseForUserId(userId, db = getDefaultDb()) {
   const result = await db.query(
     `
@@ -86,6 +115,7 @@ async function countPurchases(filters = {}, db = getDefaultDb()) {
 
 module.exports = {
   createPurchase,
+  findPurchaseBySaleIdAndUserId,
   hasPurchaseForUserId,
   countPurchases,
 };

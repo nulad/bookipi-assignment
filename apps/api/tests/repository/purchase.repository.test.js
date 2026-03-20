@@ -4,6 +4,7 @@ const { createSale } = require('../../src/repositories/sale.repository');
 const {
   countPurchases,
   createPurchase,
+  findPurchaseBySaleIdAndUserId,
   hasPurchaseForUserId,
 } = require('../../src/repositories/purchase.repository');
 const { createTestDatabase } = require('../helpers/postgres-test-helpers');
@@ -123,6 +124,53 @@ describe('purchase.repository', () => {
       await expect(
         hasPurchaseForUserId(`missing-${Date.now()}@example.com`, client),
       ).resolves.toBe(false);
+    } finally {
+      await client.query('ROLLBACK');
+      client.release();
+    }
+  });
+
+  it('finds a persisted purchase by sale id and user id', async () => {
+    const client = await testDatabase.openTransaction();
+
+    try {
+      const sale = await createFixtureSale(client, 'Keyboard');
+      const otherSale = await createFixtureSale(client, 'Mousepad');
+      const purchase = await createPurchase(
+        {
+          saleId: sale.id,
+          userId: 'alice@example.com',
+        },
+        client,
+      );
+
+      await createPurchase(
+        {
+          saleId: otherSale.id,
+          userId: 'alice@example.com',
+        },
+        client,
+      );
+
+      await expect(
+        findPurchaseBySaleIdAndUserId(
+          {
+            saleId: sale.id,
+            userId: 'alice@example.com',
+          },
+          client,
+        ),
+      ).resolves.toEqual(purchase);
+
+      await expect(
+        findPurchaseBySaleIdAndUserId(
+          {
+            saleId: sale.id,
+            userId: 'missing@example.com',
+          },
+          client,
+        ),
+      ).resolves.toBeNull();
     } finally {
       await client.query('ROLLBACK');
       client.release();

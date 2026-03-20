@@ -1,6 +1,6 @@
 # Stress Test Results
 
-Captured on March 20, 2026 against the local Docker Compose stack in this repository.
+Captured against the local Docker Compose stack in this repository.
 
 ## Test Environment
 

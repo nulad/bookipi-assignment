@@ -8,6 +8,7 @@
     "dev": "node --watch server.js",
     "db:schema": "node scripts/apply-schema.js",
     "sale:init": "node scripts/init-sale.js",
+    "purchase:reconcile": "node scripts/reconcile-purchase-persistence-failures.js",
     "wait:deps": "node scripts/wait-for-dependencies.js",
     "start:container": "npm run wait:deps && npm run db:schema && npm run sale:init && npm run start",
     "init:container": "npm run wait:deps && npm run db:schema && npm run sale:init",

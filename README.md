@@ -11,12 +11,6 @@ This repository focuses first on backend correctness for a flash sale flow. The 
 - sale-window enforcement
 - durable persistence of successful purchases
 
-Current repo status:
-
-- `apps/api` contains the implemented backend
-- `apps/web` contains a single-page React + Vite flash sale demo UI
-- local infrastructure runs through Docker Compose with Redis and Postgres
-
 ## Architecture Summary
 
 The implemented backend lives in `apps/api/src` and uses a narrow request path to keep concurrency behavior explicit and testable.
@@ -40,18 +34,29 @@ flowchart LR
 
     subgraph Backend
         API[Express API]
+        LUA[Redis Lua purchase gate]
+        RECON[Manual reconciliation CLI]
+        INIT[Sale initialization script]
     end
 
     subgraph Data
         REDIS[(Redis)]
+        SCHEMA[(Postgres schema:<br/>sales + purchases)]
         PG[(Postgres)]
     end
 
     WEB -->|GET sale status<br/>POST purchase| API
     K6 -->|Concurrent POST /purchase| API
-    API -->|Atomic stock + duplicate checks| REDIS
-    API -->|Persist sale + purchases| PG
-    REDIS -.->|Active sale state<br/>remaining stock<br/>purchased users| API
+    API -->|Executes atomic decision| LUA
+    LUA -->|Single atomic stock + duplicate check boundary| REDIS
+    API -->|Persist successful purchase| PG
+    PG -.->|sales + purchases rows| SCHEMA
+    INIT -->|Seeds sale state<br/>caches active sale ID| REDIS
+    INIT -->|Creates or refreshes sale definition| PG
+    API -.->|On persistence failure,<br/>enqueue repair record| REDIS
+    RECON -->|Repairs queued failures<br/>archives outcomes| REDIS
+    RECON -->|Backfills missing durable purchases| PG
+    REDIS -.->|Active sale state<br/>remaining stock<br/>purchased users<br/>reconciliation queue| API
     PG -.->|Durable purchase records| API
 ```
 
@@ -73,6 +78,10 @@ flowchart LR
 6. If the Postgres insert fails after Redis already reserved the slot, the API returns an explicit persistence error, logs the incident, and pushes reconciliation data into Redis for later repair.
 
 Current simplifying assumption: the system effectively operates on one configured active sale at a time, driven by environment configuration and a cached active sale ID in Redis.
+
+## Design Decisions & Trade-Offs
+
+This implementation optimizes first for reviewer-visible correctness under concurrency. The core decision is to let Redis own the hot-path purchase gate, let Postgres own durable purchase records, and keep `POST /purchase` synchronous so the full correctness path remains easy to inspect and test. The detailed rationale appears in [Architecture Rationale](#architecture-rationale), the operational compromises are listed in [Trade-Offs](#trade-offs), and the deliberately deferred production concerns are called out in [Future Improvements](#future-improvements).
 
 ## Architecture Rationale
 
@@ -120,6 +129,8 @@ Copy the example environment file and adjust values if needed:
 cp .env.example .env
 ```
 
+> ⚠️ **Important:** Before running the API, web app, or any stress test, update `SALE_START_TIME` and `SALE_END_TIME` in your local `.env` so the current time falls inside the sale window you want to review. The defaults in `.env.example` are placeholders set to `2099`, which will cause purchase attempts to return `sale_not_started`.
+
 Relevant defaults from [.env.example](.env.example):
 
 - API port: `3000`
@@ -130,9 +141,6 @@ Relevant defaults from [.env.example](.env.example):
 - `SALE_START_TIME=2099-01-01T10:00:00.000Z`
 - `SALE_END_TIME=2099-01-01T10:10:00.000Z`
 - `SALE_INITIAL_STOCK=100`
-
-The checked-in sale window values are placeholders. Before starting the stack, update your
-local `.env` so the current time falls inside the sale window you want to review.
 
 ### Container Env Wiring
 
@@ -206,32 +214,18 @@ Before each stress run, make sure the sale window is active in `.env`, then rese
 docker compose run --rm api-init
 ```
 
-Burst scenario:
+Burst scenario intent:
+
+- prove stock does not oversell under a burst of unique users
+
+Precondition:
+
+- `/sale-status` should report an active sale with `remainingStock=100` when using the default seed
+
+Run command:
 
 ```bash
 docker compose run --rm stress-burst
-```
-
-Repeated-user scenario:
-
-```bash
-docker compose run --rm stress-repeated
-```
-
-You can still override k6 env values per run:
-
-```bash
-docker compose run --rm -e BURST_RATE=500 -e BURST_DURATION=20s stress-burst
-docker compose run --rm -e REPEATED_USER_POOL_SIZE=20 stress-repeated
-```
-
-Expected precondition for either stress scenario:
-
-```json
-{
-  "status": "active",
-  "remainingStock": 100
-}
 ```
 
 Expected behavior:
@@ -240,9 +234,19 @@ Expected behavior:
 - duplicate-user rejections stay at `0`
 - all responses remain HTTP `200`
 
-Precondition for this scenario:
+Repeated-user scenario intent:
+
+- prove each logical user can win at most once even when requests repeat under load
+
+Precondition:
 
 - `/sale-status` must report `remainingStock >= REPEATED_USER_POOL_SIZE`
+
+Run command:
+
+```bash
+docker compose run --rm stress-repeated
+```
 
 Expected behavior:
 
@@ -250,6 +254,13 @@ Expected behavior:
 - `already_purchased` responses are observed under load
 - all responses remain HTTP `200`
 - total successes equal the repeated-user pool size
+
+You can still override k6 env values per run:
+
+```bash
+docker compose run --rm -e BURST_RATE=500 -e BURST_DURATION=20s stress-burst
+docker compose run --rm -e REPEATED_USER_POOL_SIZE=20 stress-repeated
+```
 
 Supported environment overrides:
 
@@ -274,7 +285,7 @@ The script will fail fast if:
 
 ### Recorded Stress Test Results
 
-Sample evidence was captured on March 20, 2026 with the default Docker Compose stack, `SALE_INITIAL_STOCK=100`, and the active sale window from the local `.env`.
+Sample evidence was captured against the default Docker Compose stack with `SALE_INITIAL_STOCK=100` and an active sale window from the local `.env`.
 
 Full run notes and measured counters are recorded in [docs/stress-test-results.md](docs/stress-test-results.md).
 
@@ -314,6 +325,52 @@ Local ports used during development:
 - frontend on `localhost:5173` via `npm run dev:web`
 
 Tests use `POSTGRES_TEST_URL` when running in test mode.
+
+## Manual Reconciliation
+
+When `POST /purchase` succeeds in Redis but fails to persist in Postgres, the API appends a JSON record to Redis list `flashsale:purchase_persistence_failures`.
+
+The manual reconciliation CLI now lets an operator review and repair that queue without editing Redis directly.
+
+Inspect the current queue without changing data:
+
+```bash
+npm run purchase:reconcile:api
+```
+
+Apply repairs and archive processed records:
+
+```bash
+npm run purchase:reconcile:api -- --apply
+```
+
+One-command smoke test for the full inspect -> repair -> verify flow:
+
+```bash
+npm run smoke:reconciliation
+```
+
+Optional: process only the first `N` queued records:
+
+```bash
+npm run purchase:reconcile:api -- --apply --limit 10
+```
+
+Equivalent container-first command:
+
+```bash
+docker compose run --rm api npm run purchase:reconcile:api -- --apply
+```
+
+The command processes records from the head of the queue and uses this flow for each item:
+
+- parse the stored JSON payload from `flashsale:purchase_persistence_failures`
+- check whether the `(saleId, userId)` purchase already exists in Postgres
+- insert the purchase if it is still missing
+- append the handled record to Redis archive list `flashsale:purchase_persistence_failures_archive`
+- remove the original queue item only after the repair outcome is known and the archive write succeeds
+
+If the command hits a malformed record, it archives the raw payload with status `archived_invalid` instead of silently dropping it. If Postgres or Redis fails during repair, the current queue item is left in place so the command can be retried safely.
 
 ## API Endpoints
 
@@ -441,6 +498,7 @@ Current test commands:
 ```bash
 docker compose run --rm api-test
 docker compose run --rm api-init
+docker compose run --rm api npm run purchase:reconcile:api -- --apply
 docker compose run --rm stress-burst
 ```
 
@@ -449,6 +507,7 @@ Equivalent host-Node commands still exist:
 ```bash
 npm test
 npm run test:api
+npm run purchase:reconcile:api
 npm run stress:purchase-burst
 ```
 
@@ -457,7 +516,7 @@ npm run stress:purchase-burst
 - Redis Lua keeps stock decrement and duplicate-user checks atomic in the hot path, at the cost of more logic living outside plain JavaScript.
 - Postgres is the durable source of truth for successful purchases, which is safer than keeping winners only in Redis.
 - If Postgres persistence fails after Redis already reserved stock, the API does not try to roll Redis back blindly because that could oversell if the DB write actually committed before the error surfaced.
-- Instead, that path returns `503 purchase_persistence_failed`, logs the failure, and appends a JSON reconciliation record to Redis list `flashsale:purchase_persistence_failures` so the reservation can be reviewed and repaired later.
+- Instead, that path returns `503 purchase_persistence_failed`, logs the failure, appends a JSON reconciliation record to Redis list `flashsale:purchase_persistence_failures`, and relies on the manual reconciliation CLI to repair and archive those records safely.
 - The API surface is intentionally small so the core purchase path stays easy to reason about and test.
 - Sale configuration is environment-driven and effectively single-sale, which simplifies initialization but does not yet model multiple concurrent campaigns.
 - The frontend stays intentionally thin and talks directly to the existing API surface, which keeps the assignment demo easy to reason about but leaves room for a richer client data layer if the app grew.
@@ -466,8 +525,8 @@ npm run stress:purchase-burst
 
 The following items are planned work, not current behavior:
 
-- expand stress and load testing coverage under `tests/stress`
-- add better observability around purchase results, failures, and Redis/Postgres health
-- support dynamic sale creation and configuration instead of relying on env-only sale setup
-- harden reconciliation and idempotency guarantees between Redis and Postgres
-- document deployment and more production-oriented infrastructure concerns
+- expand stress and load testing coverage under `tests/stress` so the current correctness claims are exercised across more traffic shapes and failure conditions
+- add better observability around purchase results, failures, and Redis/Postgres health because the assignment prioritizes correctness first, while production diagnostics were intentionally kept secondary
+- support dynamic sale creation and configuration instead of relying on env-only sale setup, which was a deliberate simplification to keep the review path centered on a single active sale
+- automate reconciliation instead of relying on an operator-run CLI, which was deferred to keep failure recovery explicit and easy to review end to end
+- document deployment and more production-oriented infrastructure concerns, which were left out so the repository could stay focused on the core purchase path and local reproducibility

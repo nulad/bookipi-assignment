@@ -971,7 +971,7 @@ covering sale status, successful purchase, and purchase-status lookup. The burst
 
 These items were intentionally left out of the original submission path, but are valid next execution tasks based on final review feedback.
 
-## [ ] RF-T01 Add a manual reconciliation CLI for Redis success / Postgres failure
+## [x] RF-T01 Add a manual reconciliation CLI for Redis success / Postgres failure
 
 **Goal:** close the current gap where reconciliation records are captured but never drained.
 
