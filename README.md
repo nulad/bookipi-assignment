@@ -74,37 +74,37 @@ flowchart LR
 
 Current simplifying assumption: the system effectively operates on one configured active sale at a time, driven by environment configuration and a cached active sale ID in Redis.
 
-## Architecture Rationale Draft
+## Architecture Rationale
 
-This section is intentionally rough. It exists to capture the reasoning now so the final Day 3 README does not need to be written from scratch.
+This implementation is designed to make the flash-sale gate correct under concurrency while keeping the system small enough to review end to end. The central design choice is to separate the live purchase decision from durable record keeping: Redis handles the race, and Postgres stores the final outcome.
 
-### Why Redis-First Gating
+### Why Redis Handles the Purchase Gate
 
-The hottest part of the system is the decision "can this user take one of the remaining items right now?" That decision needs three checks to happen together under concurrency:
+The hottest part of the system is the decision "can this user claim one of the remaining items right now?" Under load, that decision must evaluate three rules together:
 
-- is the sale currently active
-- has this user already purchased
-- is there still stock remaining
+- the sale is currently active
+- the user has not already purchased
+- stock is still available
 
-Redis is used first because the Lua script can evaluate those checks and update stock atomically in one fast operation. That keeps the concurrency gate narrow and avoids turning the main request path into a heavier database-locking problem. The design goal here is not "Redis is the source of truth for everything"; it is "Redis is the operational gate that prevents oversell and duplicate wins in the hottest part of the flow."
+The Redis Lua script performs those checks and updates stock in one atomic operation. That makes the concurrency boundary explicit, keeps the hot path fast, and avoids spreading race-sensitive logic across multiple database round trips or row-locking steps. Redis is not presented here as the permanent source of truth for all purchase data; it is the operational gate that prevents oversell and duplicate winners at the moment requests collide.
 
-### Why Postgres Holds Durable Purchase Records
+### Why Postgres Stores Successful Purchases
 
-Redis is a good place to make the immediate concurrency decision, but it is not the system of record for successful purchases. Persisting winners in Postgres gives the project a durable store that survives Redis restarts, supports later audit/reporting needs, and makes `GET /purchase-status/:userId` depend on a stable data source instead of only cached in-memory state.
+Redis is well suited to making the immediate concurrency decision, but successful purchases still need a durable system of record. Postgres fills that role by storing completed purchases in a form that survives Redis restarts, supports later reporting, and gives `GET /purchase-status/:userId` a stable backing store.
 
-The `purchases` table also has a unique `(sale_id, user_id)` constraint. That means the "one item per user" rule is defended not only in Redis during the hot path, but also at the durable storage layer. In other words, Redis protects the live race, and Postgres protects the final recorded outcome.
+The `purchases` table also enforces a unique `(sale_id, user_id)` constraint. That provides defense in depth for the "one item per user" rule: Redis protects the live race, and Postgres protects the final persisted result.
 
-### Why a Queue Was Not Put in the Main Flow
+### Why the Main Flow Stays Synchronous
 
-A queue-first design is a valid production direction, but it was intentionally not used in the primary assignment flow. For this scope, the synchronous API keeps the system easier to reason about:
+A queue-first design can be a strong production option, but it was intentionally not introduced into the primary request path for this assignment. Keeping `POST /purchase` synchronous has three benefits for the current scope:
 
-- the caller gets an immediate purchase result
-- the core correctness path stays visible in one request flow
-- tests can directly prove no-oversell and one-per-user behavior without also introducing worker timing and delivery semantics
+- the caller receives an immediate purchase result
+- the correctness path remains visible in a single request flow
+- tests can prove no-oversell and one-per-user behavior without also depending on worker timing or delivery semantics
 
-Adding a queue in the main path would also require more machinery: worker processes, idempotent consumers, retry rules, poison-message handling, and a clearer strategy for when the user sees "accepted" versus "actually persisted." That complexity is worthwhile at larger scale, but it would blur the assignment's main objective, which is to prove correctness of the flash-sale gate first.
+Putting a queue in the middle of the flow would add worker orchestration, idempotent consumer rules, retry policy, poison-message handling, and a more complicated user-facing contract around "accepted" versus "persisted." Those are valid production concerns, but they are not required to demonstrate the core correctness properties this project is focused on.
 
-The current compromise is synchronous purchase handling plus explicit reconciliation when Redis succeeds but Postgres persistence fails. A future production evolution could move persistence behind an outbox/queue boundary while keeping Redis as the front-door concurrency gate.
+The current compromise is synchronous purchase handling with explicit reconciliation if Redis succeeds but Postgres persistence fails. A natural production evolution would be to introduce an outbox or queue-backed persistence step while still keeping Redis as the front-door concurrency gate.
 
 ## Container-First Setup
 
