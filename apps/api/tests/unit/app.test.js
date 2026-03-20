@@ -25,6 +25,19 @@ describe('app', () => {
     expect(response.body).toEqual({ status: 'ok' });
   });
 
+  it('logs each successful request once with method, path, status, and duration', async () => {
+    const logger = {
+      log: vi.fn(),
+    };
+    const customApp = createApp({ logger });
+
+    const response = await request(customApp).get('/health');
+
+    expect(response.status).toBe(200);
+    expect(logger.log).toHaveBeenCalledTimes(1);
+    expect(logger.log).toHaveBeenCalledWith(expect.stringMatching(/^GET \/health 200 \d+ms$/));
+  });
+
   it('returns a JSON 404 payload for unknown routes', async () => {
     const response = await request(app).get('/does-not-exist');
 
@@ -117,8 +130,12 @@ describe('app', () => {
 
   it('forwards rejected async sale handlers to the app error middleware', async () => {
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const logger = {
+      log: vi.fn(),
+    };
 
     const customApp = createApp({
+      logger,
       saleRouter: createSaleRouter({
         getSaleStatus: vi.fn().mockRejectedValue(new Error('Redis unavailable')),
       }),
@@ -134,6 +151,10 @@ describe('app', () => {
         message: 'Internal server error',
       },
     });
+    expect(logger.log).toHaveBeenCalledTimes(1);
+    expect(logger.log).toHaveBeenCalledWith(
+      expect.stringMatching(/^GET \/sale-status 500 \d+ms$/),
+    );
   });
 
   it('forwards rejected async purchase handlers to the app error middleware', async () => {

@@ -993,7 +993,7 @@ These items were intentionally left out of the original submission path, but are
 
 ---
 
-## [ ] RF-T02 Add lightweight request logging middleware
+## [x] RF-T02 Add lightweight request logging middleware
 
 **Goal:** improve baseline observability without adding external logging infrastructure.
 

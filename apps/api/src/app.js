@@ -5,12 +5,20 @@ const {
   errorHandler,
   notFoundHandler,
 } = require('./middleware/error.middleware');
+const { createRequestLogger } = require('./middleware/request-logger.middleware');
+
+const defaultLogger = process.env.NODE_ENV === 'test'
+  ? { log: () => {} }
+  : console;
 
 function createApp({
   purchaseRouter = createPurchaseRouter(),
   saleRouter = createSaleRouter(),
+  logger = defaultLogger,
 } = {}) {
   const app = express();
+
+  app.use(createRequestLogger({ logger }));
 
   app.use((request, response, next) => {
     response.setHeader('Access-Control-Allow-Origin', '*');
