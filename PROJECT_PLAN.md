@@ -967,6 +967,74 @@ covering sale status, successful purchase, and purchase-status lookup. The burst
 
 ---
 
+# Review Follow-Ups
+
+These items were intentionally left out of the original submission path, but are valid next execution tasks based on final review feedback.
+
+## [ ] RF-T01 Add a manual reconciliation CLI for Redis success / Postgres failure
+
+**Goal:** close the current gap where reconciliation records are captured but never drained.
+
+**Do:**
+- add a small script or CLI under `apps/api/src/scripts` to inspect and process `flashsale:purchase_persistence_failures`
+- define a safe repair flow for each record:
+  - check whether the purchase already exists in Postgres
+  - persist it if missing
+  - remove or archive the Redis reconciliation record only after a successful repair decision
+- document how a reviewer or operator can run the reconciliation command manually
+- add targeted tests for record parsing and repair decision behavior
+
+**Done when:**
+- persistence failures can be reviewed and repaired without editing Redis manually
+- the fault-tolerance story is no longer "record only"
+- README explains the manual recovery workflow clearly
+
+**Priority:** High
+
+---
+
+## [ ] RF-T02 Add lightweight request logging middleware
+
+**Goal:** improve baseline observability without adding external logging infrastructure.
+
+**Do:**
+- add Express middleware that logs:
+  - HTTP method
+  - request path
+  - response status
+  - request duration in milliseconds
+- ensure logging runs for success and error responses
+- keep log output simple and readable for local runs and container logs
+- add unit coverage if middleware logic becomes non-trivial
+
+**Done when:**
+- each request produces one concise access log line
+- reviewers can see request flow and latency in container or local logs
+- logging does not change API behavior
+
+**Priority:** Medium
+
+---
+
+## [ ] RF-T03 Tighten reviewer-facing environment and demo-scope docs
+
+**Goal:** make first-run reviewer experience clearer and reduce ambiguity around demo-only defaults.
+
+**Do:**
+- make the placeholder `SALE_START_TIME` and `SALE_END_TIME` requirement more prominent in `README.md`
+- ensure the container-first setup flow makes "edit `.env` before running" impossible to miss
+- add a one-line note that wide-open CORS is intentional for the take-home demo scope, or make the allowed origin configurable if that stays lightweight
+- verify the README language matches the actual startup flow and active-sale initialization steps
+
+**Done when:**
+- a reviewer is unlikely to start the stack and accidentally see only an "upcoming" sale without understanding why
+- demo-only trade-offs are explicitly labeled as such
+- README setup guidance is tighter and easier to follow
+
+**Priority:** Medium
+
+---
+
 # Final Submission Checklist
 
 * [x] Source code is committed and pushed
