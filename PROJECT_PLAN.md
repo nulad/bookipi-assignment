@@ -943,7 +943,7 @@ If time gets tight, finish these first:
 
 ---
 
-### [ ] D3-T09 Run final full test suite
+### [x] D3-T09 Run final full test suite
 
 **Goal:** verify nothing regressed before submission.
 
@@ -959,27 +959,33 @@ If time gets tight, finish these first:
 
 * submission confidence is high
 
+**Verification:** March 20, 2026 final pass completed with `npm run test --workspace=flash-sale-api -- tests/unit`,
+`npm run test --workspace=flash-sale-api -- tests/integration`, `npm run test --workspace=flash-sale-api -- tests/concurrency`,
+`npm run test:api`, `docker compose run --rm stress-burst`, and a browser-driven check of `http://localhost:5173`
+covering sale status, successful purchase, and purchase-status lookup. The burst run finished with `3751` attempts,
+`100` successes, `3651` `sold_out`, `0` `already_purchased`, and `100%` HTTP `200` responses.
+
 ---
 
 # Final Submission Checklist
 
-* [ ] Source code is committed and pushed
+* [x] Source code is committed and pushed
 * [x] README explains design choices and trade-offs
 * [x] Architecture diagram is present
-* [ ] Backend runs locally
-* [ ] Frontend runs locally
+* [x] Backend runs locally
+* [x] Frontend runs locally
 * [x] Containerized reviewer workflow runs successfully
-* [ ] Unit tests pass
-* [ ] Integration tests pass
-* [ ] Concurrency tests pass
+* [x] Unit tests pass
+* [x] Integration tests pass
+* [x] Concurrency tests pass
 * [x] Stress test instructions are documented
 * [x] Stress test result summary is documented
-* [ ] Core guarantees are proven:
+* [x] Core guarantees are proven:
 
-  * [ ] no overselling
-  * [ ] one item per user
-  * [ ] sale window enforced
-  * [ ] sold-out behavior correct
+  * [x] no overselling
+  * [x] one item per user
+  * [x] sale window enforced
+  * [x] sold-out behavior correct
 
 ---
 
