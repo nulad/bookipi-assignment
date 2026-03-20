@@ -270,6 +270,19 @@ The script will fail fast if:
 - `/sale-status` does not return HTTP `200`
 - the sale is not currently `active`
 
+### Recorded Stress Test Results
+
+Sample evidence was captured on March 20, 2026 with the default Docker Compose stack, `SALE_INITIAL_STOCK=100`, and the active sale window from the local `.env`.
+
+Full run notes and measured counters are recorded in [docs/stress-test-results.md](docs/stress-test-results.md).
+
+| Scenario | Command | Key expectations | Observed result |
+| --- | --- | --- | --- |
+| Burst unique users | `docker compose run --rm stress-burst` | No more than 100 purchases succeed, duplicate-user rejections stay at `0`, responses stay HTTP `200` | `3751` attempts, `100` successes, `3651` `sold_out`, `0` `already_purchased`, HTTP `200` rate `100%`, latency `p95=2.67ms`, `p99=33.14ms` |
+| Repeated user pool | `docker compose run --rm stress-repeated` | Each logical user succeeds once, duplicate attempts return `already_purchased`, responses stay HTTP `200` | `3751` attempts, `25` successes for a `25`-user pool, `3726` `already_purchased`, HTTP `200` rate `100%`, latency `p95=1.88ms`, `p99=3.63ms` |
+
+These results show the two core reviewer-facing guarantees under load: stock does not oversell in the burst case, and repeated requests from the same logical users still produce only one win per user.
+
 ## Local Host Setup
 
 ### Prerequisites

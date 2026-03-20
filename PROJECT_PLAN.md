@@ -829,7 +829,7 @@ If time gets tight, finish these first:
 
 ---
 
-### [ ] D3-T03 Capture and summarize stress test results
+### [x] D3-T03 Capture and summarize stress test results
 
 **Goal:** provide reviewer-friendly evidence.
 
@@ -973,7 +973,7 @@ If time gets tight, finish these first:
 * [ ] Integration tests pass
 * [ ] Concurrency tests pass
 * [x] Stress test instructions are documented
-* [ ] Stress test result summary is documented
+* [x] Stress test result summary is documented
 * [ ] Core guarantees are proven:
 
   * [ ] no overselling
